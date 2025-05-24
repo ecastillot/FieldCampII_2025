@@ -10,4 +10,4 @@ PDF (Superstring): /data/ROC_ERT_032625/AGI-SuperStingManual.pdf
 
 | Examples | Notebook  |
 |---|---|
-| Seismic| [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://github.com/ecastillot/FieldCampII_2025/blob/main/code/seismic_analysis.ipynb) |
+| Seismic| [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ecastillot/FieldCampII_2025/blob/main/code/seismic_analysis.ipynb) |
