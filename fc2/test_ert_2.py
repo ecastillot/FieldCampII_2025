@@ -108,18 +108,28 @@ print("Any zeros?", np.any(data['rhoa'] == 0))
 
 
 fig, ax = plt.subplots()
-plt.scatter(range(data.size()), data['rhoa'], c=data['rhoa'], cmap='jet')
-plt.colorbar(label="Apparent Resistivity (Ohm m)")
+plt.scatter(data['rhoa'],range(data.size()), color='blue', s=10)  # fixed color
 plt.title("Raw Apparent Resistivity Data")
+plt.ylabel("Measurement Index")
+plt.xlabel("Apparent Resistivity (Ohm·m)")
+
+fig, ax = plt.subplots()
+ax.hist(data['rhoa'], bins=50, color='steelblue', edgecolor='black')
+ax.set_title("Distribution of Apparent Resistivity")
+ax.set_xlabel("Apparent Resistivity (Ohm·m)")
+ax.set_ylabel("Count")
+
+
+
 plt.show()
-#ax.set_title("Apparent Resistivity Data")
-#plt.show()
+
+
 
 
 # Step 4: Create a geometry for the inversion
 x_min = np.min(electrodes) - 10  # Extend 10 units beyond min electrode
 x_max = np.max(electrodes) + 10  # Extend 10 units beyond max electrode
-y_min = -50  # Depth of the model
+y_min = -10  # Depth of the model
 y_max = 0    # Surface
 
 # Debug: Print bounds
@@ -127,7 +137,7 @@ print(f"World bounds: x_min={x_min}, x_max={x_max}, y_min={y_min}, y_max={y_max}
 
 # Define a simple 2D world
 world = mt.createWorld(start=[x_min, y_max], end=[x_max, y_min], 
-                       layers=[-1, -5], worldMarker=True)
+                        worldMarker=True)
 
 # Add electrodes to the geometry for mesh refinement
 for p in data.sensors():
@@ -145,33 +155,58 @@ plt.show()
 ## Step 5: Initialize ERTManager and perform inversion
 # Step 5: Initialize ERTManager and perform inversion
 mgr = ert.ERTManager('real_ert_data.dat')
-model = mgr.invert(lam=1, verbose=True)
+model1 = mgr.invert(lam=1, verbose=False)
 
 # Step 6: Check inversion quality
 print(f"Inversion stopped with chi² = {mgr.inv.chi2():.3f}")
 
+# Step 7: Visualize results
+ax,cb = pg.show(mgr.paraDomain, model1, label='Resistivity (Ohm·m)', cMap='Spectral_r',
+        logScale=True)
+
+ref_xlims = ax.get_xlim()
+ref_ylims = ax.get_ylim()
+
 mgr.showResultAndFit()
+
+
+# Step 8: Different grids
+
+# Previous grid
 meshPD = pg.Mesh(mgr.paraDomain) # Save copy of para mesh for plotting later
 
+# custom grid
+inversionDomain = pg.createGrid(x=np.linspace(start=ref_xlims [0], stop=ref_xlims[1] , num=33),
+                                y=-pg.cat([0], pg.utils.grange(0.1, ref_ylims[0]*-1, n=20))[::-1],
+                                marker=2)
+grid = pg.meshtools.appendTriangleBoundary(inversionDomain, marker=1,
+                                           xbound=25, ybound=10)
+pg.show(grid, markers=True)
+
+model2 = mgr.invert(data, mesh=grid, lam=20, verbose=False)
+print(f"Inversion stopped with chi² = {mgr.inv.chi2():.3f}")
+#np.testing.assert_approx_equal(mgr.inv.chi2(), 1.4, significant=2)
+
+modelPD2 = mgr.paraModel(model2)  # do the mapping
+pg.show(mgr.paraDomain, modelPD2, label='Resistivity (Ohm·m)', cMap='Spectral_r',
+        logScale=True)
+#pg.show(grid, markers=True)
 
 # Step 7: Visualize results
 # Show the apparent resistivity data with explicit range
-modelPD = mgr.paraModel(model)  # do the mapping
-pg.show(mgr.paraDomain, modelPD, label='Model', cMap='Spectral_r',
-        logScale=True, cMin=25, cMax=150)
 
-pg.info('Inversion stopped with chi² = {0:.3}'.format(mgr.fw.chi2()))
+#fig, (ax1, ax2,ax3) = plt.subplots(3,1, sharex=True, sharey=True, figsize=(8,7))
 
-fig, (ax1, ax2, ax3) = plt.subplots(3,1, sharex=True, sharey=True, figsize=(8,7))
-
-#pg.show(mesh, rhomap, ax=ax1, hold=True, cMap="Spectral_r", logScale=True,
+#pg.show(meshPD, inv1, ax=ax1, hold=True, cMap="Spectral_r", logScale=True,
 #        orientation="vertical", cMin=25, cMax=150)
-pg.show(meshPD, inv, ax=ax2, hold=True, cMap="Spectral_r", logScale=True,
-        orientation="vertical", cMin=25, cMax=150)
-mgr.showResult(ax=ax3, cMin=25, cMax=150, orientation="vertical")
+#pg.show(mgr.paraDomain, modelPD2,ax=ax2, label='Model', cMap='Spectral_r',
+#        logScale=True, cMin=25, cMax=150)
+#mgr.showResult(ax=ax3, cMin=25, cMax=150, orientation="vertical")
 
-labels = ["True model", "Inversion unstructured mesh", "Inversion regular grid"]
-for ax, label in zip([ax1, ax2, ax3], labels):
-    ax.set_xlim(mgr.paraDomain.xmin(), mgr.paraDomain.xmax())
-    ax.set_ylim(mgr.paraDomain.ymin(), mgr.paraDomain.ymax())
-    ax.set_title(label)
+
+#labels = ["True model", "Inversion unstructured mesh", "Inversion regular grid"]
+#for ax, label in zip([ax1, ax2, ax3], labels):
+#    ax.set_xlim(mgr.paraDomain.xmin(), mgr.paraDomain.xmax())
+#    ax.set_ylim(mgr.paraDomain.ymin(), mgr.paraDomain.ymax())
+#    ax.set_title(label)
+
