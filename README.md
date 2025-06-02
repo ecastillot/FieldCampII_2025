@@ -1,11 +1,10 @@
-# FieldCampII_2025
+# FieldCampII_2025 (UTD)
 
-## ERT
-```bash
-Notebook: /code/ert_analysis.ipynb
-Data: /data/ROC_ERT_032625
-PDF (Superstring): /data/ROC_ERT_032625/AGI-SuperStingManual.pdf
-```
+Nadine Ushakov (Professor):  nadine.igonin@utdallas.edu
+
+Emmanuel Castillo (TA): emmanuel.castillotaborda@utallas.edu
+
+
 ## ERT
 
 | Examples | Notebook  |
