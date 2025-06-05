@@ -7,6 +7,139 @@ import obsplus
 from obspy import read, Stream, UTCDateTime
 from obspy import read_inventory
 
+import re
+from typing import List
+
+def get_station_from_solo(folder_path: str) -> pd.DataFrame:
+    """
+    Reads all DigiSolo log files in a specified folder and extracts station information.
+
+    Parameters
+    ----------
+    folder_path : str
+        Path to the folder containing DigiSolo log files.
+
+    Returns
+    -------
+    pd.DataFrame
+        A DataFrame containing station names, latitude, longitude, elevation, and file paths.
+    """
+    data = []
+    for filepath in glob.glob(os.path.join(folder_path, "**","*.LOG"),recursive=True):
+        try:
+            station_info = get_latlon_from_digisolo_log(filepath)
+            data.append(station_info)
+        except Exception as e:
+            print(f"Error processing {filepath}: {e}")
+    
+    if not data:
+        raise ValueError("No valid DigiSolo log files found in the specified folder.")
+    
+    return pd.DataFrame(data)
+
+
+def get_latlon_from_digisolo_log(path: str) -> dict:
+    """
+    Extracts latitude and longitude from a DigiSolo log file.
+
+    Parameters
+    ----------
+    path : str
+        Path to the DigiSolo log file.
+
+    Returns
+    -------
+    dict
+        dictionary with station name, latitude, longitude, elevation, and file path.
+    """
+    df = parse_digisolo_log_to_dataframe(path)
+    
+    if "Latitude" not in df.columns or "Longitude" not in df.columns:
+        raise ValueError("Log file does not contain Latitude or Longitude fields.")
+    
+    station_names = df.copy()["Serial Number"].dropna().unique()
+
+    if len(station_names) != 1:
+        raise ValueError("Log file contains multiple or no unique station names.")
+    else:
+        station_name = station_names[0]
+    
+    df = df.dropna(subset=["Latitude", "Longitude"])
+    if df.empty:
+        raise ValueError("No valid latitude and longitude records found in the log file.")
+    
+    lat = df["Latitude"].astype(float).mean()
+    lon = df["Longitude"].astype(float).mean()
+    elev= df["Altitude"].astype(float).mean() if "Altitude" in df.columns else None
+    
+    return {"station": station_name, "latitude": lat, "longitude": lon,"elevation":elev,"path": path}
+
+def parse_digisolo_log_to_dataframe(path: str) -> pd.DataFrame:
+    """
+    Parses a DigiSolo log file and extracts GPS, temperature, and battery data into a DataFrame.
+
+    Parameters
+    ----------
+    path : str
+        Path to the DigiSolo log file.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame containing extracted records with UTC time, GPS status, latitude, longitude,
+        altitude, temperature, voltage, and other fields.
+    """
+    with open(path, "r", encoding="utf-8") as file:
+        lines = file.readlines()
+
+    blocks = []
+    current_block = {}
+    current_section = None
+
+    section_pattern = re.compile(r"\[(\w+)(\d+)\]")
+    key_value_pattern = re.compile(r"([\w\s]+)=\s*(.+)")
+
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+
+        section_match = section_pattern.match(line)
+        if section_match:
+            # If there was a previous block, save it
+            if current_block:
+                blocks.append(current_block)
+            current_block = {
+                "section": section_match.group(1),
+                "index": section_match.group(2)
+            }
+            continue
+
+        key_value_match = key_value_pattern.match(line)
+        if key_value_match:
+            key = key_value_match.group(1).strip()
+            value = key_value_match.group(2).strip().strip('"')
+            current_block[key] = value
+
+    # Append the last block
+    if current_block:
+        blocks.append(current_block)
+
+    # Create DataFrame
+    df = pd.DataFrame(blocks)
+
+    # # Convert UTC Time to datetime if present
+    # if "UTC Time" in df.columns:
+    #     df["UTC Time"] = pd.to_datetime(df["UTC Time"], errors="coerce")
+
+    # Convert numeric fields where applicable
+    numeric_fields = ["Latitude", "Longitude", "Altitude", "Voltage", "Temperature"]
+    for field in numeric_fields:
+        if field in df.columns:
+            df[field] = pd.to_numeric(df[field], errors="coerce")
+
+    return df
+
 def read_waveforms(
     folder_path: str,
     station: str = "*",
