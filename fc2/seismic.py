@@ -281,11 +281,19 @@ def read_shots(filepath, gps_start=None):
         total_seconds = (week * 7 * 24 * 3600) + (ms / 1000) + (subms / 1e6)
         timestamp = gps_start + datetime.timedelta(seconds=total_seconds)
 
-        lat_str = coord_line.split("Latitude:")[1].strip()
-        lat = float(lat_str.split(" ")[0])
-        lon_str = coord_line.split("Longitude:")[1].split("Latitude:")[0].strip()
-        lon = float(lon_str.split(" ")[0])
-
+        lat, lat_sign = coord_line.split("Latitude:")[1].strip().split(" ")
+        lon, lon_sign = coord_line.split("Longitude:")[1].split("Latitude:")[0].strip().split(" ")
+        
+        if lat_sign == 'S':
+            lat = -float(lat)
+        else:
+            lat = float(lat)
+        if lon_sign == 'W':
+            lon = -float(lon)
+        else:
+            lon = float(lon)
+        
+        
         # Append the shot information
         shots.append({
             "shot": i + 1,
@@ -296,7 +304,7 @@ def read_shots(filepath, gps_start=None):
             "minute": timestamp.minute,
             "second": round(timestamp.second + timestamp.microsecond / 1e6, 2),
             "latitude": round(lat, 5),
-            "longitude": round(abs(lon), 5)  # Convert W to positive if required
+            "longitude": round(lon, 5)  # Convert W to positive if required
         })
 
     return pd.DataFrame(shots)
