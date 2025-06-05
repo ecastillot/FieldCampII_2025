@@ -6,7 +6,7 @@ import os
 import obsplus
 from obspy import read, Stream, UTCDateTime
 from obspy import read_inventory
-
+from pyproj import Transformer
 import re
 from typing import List
 
@@ -38,6 +38,41 @@ def get_station_from_solo(folder_path: str) -> pd.DataFrame:
     return pd.DataFrame(data)
 
 
+
+def append_xy_coords(df, lat_col='latitude', lon_col='longitude', elev_col_in_km=None,epsg="epsg:32614"):
+    """
+    Appends UTM coordinates (x, y) and elevation in meters to a DataFrame based on latitude and longitude.
+    
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame containing latitude and longitude columns.
+    lat_col : str, optional
+        Name of the column containing latitude values (default is 'latitude').
+    lon_col : str, optional
+        Name of the column containing longitude values (default is 'longitude').
+    elev_col_in_km : str, optional
+        Name of the column containing elevation values in kilometers (default is None, which means no elevation column).
+    epsg : str, optional
+        EPSG code for the target coordinate system (default is "epsg:32614" for UTM zone 14N).
+    """
+    # Define transformer (WGS84 to UTM zone based on lat/lon in Texas, e.g., UTM zone 14N)
+    transformer = Transformer.from_crs("epsg:4326", epsg, always_xy=True)
+
+    # Apply transformation
+    x, y = transformer.transform(df[lon_col].values, df[lat_col].values)
+
+    # Create a new DataFrame with x, y, elevation
+    df['x'] = x
+    df['y'] = y
+    
+    if elev_col_in_km is not None:
+        df['elevation_m'] = df[elev_col_in_km]  # Already in meters
+    else:
+        df['elevation_m'] = None
+
+    return df
+
 def get_latlon_from_digisolo_log(path: str) -> dict:
     """
     Extracts latitude and longitude from a DigiSolo log file.
@@ -67,6 +102,7 @@ def get_latlon_from_digisolo_log(path: str) -> dict:
     df = df.dropna(subset=["Latitude", "Longitude"])
     if df.empty:
         raise ValueError("No valid latitude and longitude records found in the log file.")
+    
     
     lat = df["Latitude"].astype(float).mean()
     lon = df["Longitude"].astype(float).mean()
@@ -259,8 +295,8 @@ def read_shots(filepath, gps_start=None):
             "hour": timestamp.hour,
             "minute": timestamp.minute,
             "second": round(timestamp.second + timestamp.microsecond / 1e6, 2),
-            "latitude": round(lat, 2),
-            "longitude": round(abs(lon), 2)  # Convert W to positive if required
+            "latitude": round(lat, 5),
+            "longitude": round(abs(lon), 5)  # Convert W to positive if required
         })
 
     return pd.DataFrame(shots)
