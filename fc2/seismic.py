@@ -67,7 +67,7 @@ def append_xy_coords(df, lat_col='latitude', lon_col='longitude', elev_col_in_km
     df['y'] = y
     
     if elev_col_in_km is not None:
-        df['elevation_m'] = df[elev_col_in_km]  # Already in meters
+        df['elevation_m'] = df[elev_col_in_km]*1e3  # in meters
     else:
         df['elevation_m'] = None
 
