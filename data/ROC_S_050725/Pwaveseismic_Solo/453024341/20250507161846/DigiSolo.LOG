@@ -1,0 +1,289 @@
+<00002,00013,00003,00000,00001,00000,00001>
+
+[DeviceInfo00001]
+BootReason = 0007
+Firmware Version = V1.0.8.1be
+Serial Number = 453024341
+BootLoader Version = V1.0.1.8
+Boot RTC ="2016/07/27,22:18:28"
+Script Name = Script_ROC2025
+Project Name = ROC2025
+Device Type = IGU-16HR 3C 5Hz
+Start Date = "2025/05/07"
+Start Time = "00:00:00"
+End Time = "00:00:00"
+FIFO Storage MODE = 1
+GPS Power Mode = CycleOff
+Channel Number = 3
+Channel 1 Type = 98
+Channel 2 Type = 98
+Channel 3 Type = 98
+Channel 4 Type = 97
+Sample Rate = 100
+Channel 1 Gain = 0
+Channel 2 Gain = 0
+Channel 3 Gain = 0
+Channel 4 Gain = 0
+Anti-alias Filter Type = Linear
+Low Cutter Filter = 1
+Voltage Threshold = 650,600
+
+Ch1 Resistance = 1.7880, 1.8105
+Ch1 Resonate Freq = 147.4458
+Ch1 Damping = 0.4304
+Ch1 Sensitivity = 142.3342
+Ch1 RMS Noise = 1.1567
+Ch1 Spread Noise = 364477.9688
+
+Ch2 Resistance = 1.7783, 1.7938
+Ch2 Resonate Freq = 137.5775
+Ch2 Damping = 0.4437
+Ch2 Sensitivity = 139.5928
+Ch2 RMS Noise = 1.1312
+Ch2 Spread Noise = 65342.5352
+
+Ch3 Resistance = 1.7554, 1.7952
+Ch3 Resonate Freq = 68.3582
+Ch3 Damping = 0.3240
+Ch3 Sensitivity = 94.9027
+Ch3 RMS Noise = 1.1589
+Ch3 Spread Noise = 143739.1875
+
+SD Manufacturer ID = 0xad
+SD OEM_Application ID = 0x4c53
+SD Product Name = "46XLG"
+SD Production Revision = 16
+SD Production SN = 1482734209
+SD Manufacture Date = 0x0156
+
+
+[BatteryPowerOnStop]
+
+[DeviceInfo00002]
+BootReason = 0300
+Firmware Version = V1.0.8.1be
+Serial Number = 453024341
+BootLoader Version = V1.0.1.8
+Boot RTC ="2016/07/27,23:18:58"
+Script Name = Script_ROC2025
+Project Name = ROC2025
+Device Type = IGU-16HR 3C 5Hz
+Start Date = "2025/05/07"
+Start Time = "00:00:00"
+End Time = "00:00:00"
+FIFO Storage MODE = 1
+Existing DATA Segments = 0
+Starting DATA Segment# = 0
+GPS Power Mode = CycleOff
+Channel Number = 3
+Channel 1 Type = 98
+Channel 2 Type = 98
+Channel 3 Type = 98
+Channel 4 Type = 97
+Sample Rate = 100
+Channel 1 Gain = 0
+Channel 2 Gain = 0
+Channel 3 Gain = 0
+Channel 4 Gain = 0
+Anti-alias Filter Type = Linear
+Low Cutter Filter = 1
+Voltage Threshold = 650,600
+
+Ch1 Resistance = 1.7873, 1.8183
+Ch1 Resonate Freq = 5.0155
+Ch1 Damping = 0.7167
+Ch1 Sensitivity = 77.1804
+Ch1 RMS Noise = 1.1458
+Ch1 Spread Noise =  24.5397
+
+Ch2 Resistance = 1.7869, 1.8079
+Ch2 Resonate Freq = 5.0923
+Ch2 Damping = 0.6901
+Ch2 Sensitivity = 77.6782
+Ch2 RMS Noise = 1.1383
+Ch2 Spread Noise = 203.9811
+
+Ch3 Resistance = 1.7878, 1.8146
+Ch3 Resonate Freq = 5.0152
+Ch3 Damping = 0.6994
+Ch3 Sensitivity = 78.1408
+Ch3 RMS Noise = 1.1322
+Ch3 Spread Noise = 259.3041
+
+GPS Lock Time = "2025/05/07,15:44:02"
+GPS Tick = 45
+Satellite Number = 10
+GPS Strength     = "47,46,46,45,45,45,45,44,43,42"
+Satellite ID     = "11,22,46, 6,17,19,48,14,24,30"
+Calendar Reference = 2025/05/07,15:43 <-> 2025/05/07,00:00
+Wait Time to Work = 0(0x00000000)
+Voltage = 8.1393
+Free TF Memory = 60610
+Sensor Type = TMPx75
+Booting Temperature = 24.3125
+Upper Resistance Limit = 1905, 1921.5
+Lower Resistance Limit = 1640, 1654.2
+Booting eCompass North =  14.954
+Booting Tilted Angle =   1.542
+Booting Roll Angle   = 0.294
+Booting Pitch Angle  = -1.514
+Geophone Test Passed = 1
+Sync Delay =  64.2676
+Sync Count = 1
+
+[Notify00001]
+UTC Time = "2025/05/07,15:44:00"
+Start Acquisition FileName = "Seis000.DLD"
+
+[GPS00001]
+GPS Status = GPS Cycle Off
+GPS Tick = 81
+UTC Time = "2025/05/07,15:44:25"
+DAC Value = 2083
+ADC Sync Value = 2907,27
+Phase Error = 0
+Max Phase Error = 0
+
+[GPS00002]
+GPS Status = GPS Cycle On
+GPS Tick = 282
+UTC Time = "2025/05/07,15:49:09"
+
+[GPS00003]
+GPS Status = GPS Cycle Off
+GPS Tick = 61
+UTC Time = "2025/05/07,15:50:09"
+DAC Value = 2091
+ADC Sync Value = 2907,42
+Phase Error = 34
+Max Phase Error = 34
+
+[GPS00004]
+GPS Status = GPS Synchronization
+UTC Time = "2025/05/07,15:51:58"
+Leap Second = 0
+eCompass North =  14.689
+Tilted Angle =   1.693
+Roll Angle   = 0.460
+Pitch Angle  = -1.629
+GPS Power = OFF
+Latest Fix UTC Time = "2025/05/07,15:50:00"
+Satellite Number = 09
+GPS Strength     = "46,46,46,45,45,45,45,44,44"
+Satellite ID     = "11,17,22,14,19,46,48, 6,12"
+Longitude = -96.758213833
+Latitude   = 32.986916000
+Altitude   = 209.8
+RTC Time = "2025/05/07,15:52:00"
+
+[Temperature00001]
+UTC Time = "2025/05/07,15:53:48"
+Temperature = 27.0625
+
+[GPS00005]
+GPS Status = GPS Cycle On
+GPS Tick = 315
+UTC Time = "2025/05/07,15:55:26"
+
+[GPS00006]
+GPS Status = GPS Cycle Off
+GPS Tick = 71
+UTC Time = "2025/05/07,15:56:27"
+DAC Value = 2095
+ADC Sync Value = 2907,56
+Phase Error = 6
+Max Phase Error = 34
+
+[GPS00007]
+GPS Status = GPS Synchronization
+UTC Time = "2025/05/07,16:00:08"
+Leap Second = 0
+eCompass North =  14.823
+Tilted Angle =   1.736
+Roll Angle   = 0.460
+Pitch Angle  = -1.674
+GPS Power = OFF
+Latest Fix UTC Time = "2025/05/07,15:56:27"
+Satellite Number = 10
+GPS Strength     = "47,46,46,46,46,46,45,45,43,43"
+Satellite ID     = "11,14,17,19,22,46, 6,48,12,24"
+Longitude = -96.758216667
+Latitude   = 32.986923667
+Altitude   = 212.9
+RTC Time = "2025/05/07,16:00:10"
+
+[Temperature00002]
+UTC Time = "2025/05/07,16:03:48"
+Temperature = 27.8125
+
+[GPS00008]
+GPS Status = GPS Cycle On
+GPS Tick = 480
+UTC Time = "2025/05/07,16:04:37"
+
+[GPS00009]
+GPS Status = GPS Cycle Off
+GPS Tick = 54
+UTC Time = "2025/05/07,16:05:27"
+DAC Value = 2094
+ADC Sync Value = 2907,68
+Phase Error = 2
+Max Phase Error = 34
+
+[GPS00010]
+GPS Status = GPS Synchronization
+UTC Time = "2025/05/07,16:08:17"
+Leap Second = 0
+eCompass North =  11.741
+Tilted Angle =   1.727
+Roll Angle   = 0.458
+Pitch Angle  = -1.665
+GPS Power = OFF
+Latest Fix UTC Time = "2025/05/07,16:05:21"
+Satellite Number = 10
+GPS Strength     = "46,46,46,46,45,45,45,45,44,43"
+Satellite ID     = " 6,11,12,22,14,17,19,46,48,24"
+Longitude = -96.758214833
+Latitude   = 32.986923667
+Altitude   = 213.7
+RTC Time = "2025/05/07,16:08:19"
+
+[GPS00011]
+GPS Status = GPS Cycle On
+GPS Tick = 480
+UTC Time = "2025/05/07,16:13:29"
+
+[Temperature00003]
+UTC Time = "2025/05/07,16:13:54"
+Temperature = 28.0625
+
+[Battery00001]
+UTC Time = "2025/05/07,16:13:54"
+Voltage = 8.1258
+
+[GPS00012]
+GPS Status = GPS Cycle Off
+GPS Tick = 81
+UTC Time = "2025/05/07,16:14:42"
+DAC Value = 2097
+ADC Sync Value = 2907,87
+Phase Error = 32
+Max Phase Error = 34
+
+[GPS00013]
+GPS Status = GPS Synchronization
+UTC Time = "2025/05/07,16:16:18"
+Leap Second = 0
+eCompass North =  14.598
+Tilted Angle =   1.622
+Roll Angle   = 0.500
+Pitch Angle  = -1.542
+GPS Power = OFF
+Latest Fix UTC Time = "2025/05/07,16:14:42"
+Satellite Number = 10
+GPS Strength     = "47,46,46,46,45,45,45,45,45,44"
+Satellite ID     = "12,11,17,19, 6,22,24,46,48,14"
+Longitude = -96.758213833
+Latitude   = 32.986925833
+Altitude   = 214.8
+RTC Time = "2025/05/07,16:16:20"
