@@ -242,7 +242,7 @@ def read_stations(folder_path: str):
     
     return data
 
-def read_shots(filepath, gps_start=None):
+def read_shots(filepath, gps_start=None, source_time_separation=1e6,debug=False):
     """
     Parses a custom-formatted CSV file containing GPS time and location data for each shot.
 
@@ -252,6 +252,10 @@ def read_shots(filepath, gps_start=None):
         Path to the input CSV file.
     gps_start : datetime.datetime or None
         The GPS epoch start time. If None, defaults to January 6, 1980.
+    source_time_separation : float
+        The maximum time separation between shots to consider them part of the same group (in seconds).
+    debug : bool
+        If True, prints debug information during processing.
 
     Returns
     -------
@@ -306,6 +310,149 @@ def read_shots(filepath, gps_start=None):
             "latitude": round(lat, 5),
             "longitude": round(lon, 5)  # Convert W to positive if required
         })
+    shots = pd.DataFrame(shots)
+    shots['time'] = pd.to_datetime(
+                                    shots[['year', 'month', 'day',
+                                           'hour', 'minute']].assign(Second=shots['second']),
+                                                                format='%Y-%m-%d %H:%M:%S.%f'
+                                                                )
+    # Assuming your DataFrame is called df and it's sorted by time
+    shots = shots.sort_values('time').reset_index(drop=True)
+    
+    if isinstance(source_time_separation, (int, float)):
 
-    return pd.DataFrame(shots)
+        # Store the selected shots
+        selected_shots = []
 
+        i = 0
+        j = 0
+        while i < len(shots):
+            # Start time for the current group
+            start_time = shots.loc[i, 'time']
+            
+            # Find shots within 45 seconds from this one
+            mask = (shots['time'] - start_time).dt.total_seconds() <= source_time_separation
+            group = shots[mask & (shots.index >= i)]
+            
+            group["time_from_group_lead"] = (group['time'] - group['time'].iloc[0]).dt.total_seconds()
+            # Save this group
+            selected_shots.append(group)
+            
+            # Move to the next unprocessed shot after this group
+            i = group.index[-1] + 1
+            
+            group.reset_index(drop=True, inplace=True)
+            
+            j+= 1
+            group["shot_group"] = j  # Assign shot numbers based on the index
+            print(f"Group {j} with {len(group)} shots")
+            if debug:
+                print(group)
+        
+
+        # Concatenate all selected groups
+        gd_shots = pd.concat(selected_shots).reset_index(drop=True)
+        
+    
+    elif isinstance(source_time_separation, dict):
+        # Assuming source_time_separation is a dictionary with keys as shot group names
+        selected_shots = []
+        i=0
+        for group_name, time_sep in source_time_separation.items():
+            group_name = int(group_name)  # Ensure group name is a string
+            
+            start_time = shots.loc[i, 'time']
+            mask = (shots['time'] - start_time).dt.total_seconds() <= time_sep
+            group = shots[mask & (shots.index >= i)]
+            group["time_from_group_lead"] = (group['time'] - group['time'].iloc[0]).dt.total_seconds()
+            group["shot_group"] = group_name  # Assign the group name
+            print(f"Group {group_name} with {len(group)} shots")
+            selected_shots.append(group)
+            
+            # Move to the next unprocessed shot after this group
+            i = group.index[-1] + 1
+                       
+            if debug:
+                print(group)
+            
+        # Concatenate all selected groups
+        gd_shots = pd.concat(selected_shots).reset_index(drop=True)
+            
+        bad_shots = shots[~shots.index.isin(gd_shots.index)]
+        
+        
+        
+        if not bad_shots.empty:
+            bad_shots.sort_values('time', inplace=True)
+            bad_shots.reset_index(drop=True, inplace=True)
+            bad_shots["time_from_group_lead"] = (bad_shots['time'] - bad_shots['time'].iloc[0]).dt.total_seconds()
+            bad_shots["shot_group"] = group_name + 1
+            
+            print(f"Group {group_name+1} with {len(bad_shots)} shots")
+            
+            if debug:
+                print(bad_shots)
+            
+            gd_shots = pd.concat([gd_shots, bad_shots]).reset_index(drop=True)
+            # print(gd_shots)
+            # exit()
+            
+            
+    first_cols = ['shot_group', 'shot', 'time', 'time_from_group_lead']
+    cols = first_cols +\
+            [col for col in shots.columns if col not in first_cols]
+    gd_shots = gd_shots[cols]
+    return gd_shots
+
+if __name__ == "__main__":
+    # Example usage
+    solo_folder = "/groups/igonin/ecastillo/FieldCampII_2025/data/test/raw_shots"
+    #raw_shots_paths = glob.glob(solo_folder+"/*.csv")
+    
+    p_source_path  = os.path.join(solo_folder, "TB_INT00147.csv")
+    s_source_path  = os.path.join(solo_folder, "TB_INT00148.csv")
+    # print(p_source_path)
+    # exit()
+    
+    source_time_separation = {1: 76.45,
+                              2:40,
+                              3:30,
+                              4:42,
+                              5:46,
+                              6:26,
+                              7:22,
+                              8:30,
+                              9:33,
+                              10:33,
+                              11:23,
+                              12:24,
+                              13:26,
+                              14:62,
+                              15:51,
+                              16:30,
+                              17:21,
+                              18:21,
+                              19:19,
+                              20:24,
+                              21:31,
+                              22:38,
+                              23:35,
+                              24:30,
+                            #   3:
+                            }
+    shots = read_shots(p_source_path,source_time_separation=source_time_separation,
+                       debug=True)
+    max_group = shots["shot_group"].max()
+    last_group = shots[shots["shot_group"] == max_group]
+    print(last_group.iloc[0:10])
+    # print(shots.iloc[10:30])
+    # shots = read_shots(s_source_path,source_time_separation=35.4)
+    # print(shots.head(30))
+    # source_time_separation = {
+                                
+                           
+    # print(shots.head(30))
+    #                         }
+    
+    # shots = read_shots(p_source_path,source_time_separation=70,debug=True)
+    # # print(shots.head(30))
