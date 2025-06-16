@@ -242,7 +242,7 @@ def read_stations(folder_path: str):
     
     return data
 
-def read_shots(filepath, gps_start=None, source_time_separation=1e6,debug=False):
+def read_shot_from_file(filepath, gps_start=None):
     """
     Parses a custom-formatted CSV file containing GPS time and location data for each shot.
 
@@ -252,10 +252,6 @@ def read_shots(filepath, gps_start=None, source_time_separation=1e6,debug=False)
         Path to the input CSV file.
     gps_start : datetime.datetime or None
         The GPS epoch start time. If None, defaults to January 6, 1980.
-    source_time_separation : float
-        The maximum time separation between shots to consider them part of the same group (in seconds).
-    debug : bool
-        If True, prints debug information during processing.
 
     Returns
     -------
@@ -318,55 +314,42 @@ def read_shots(filepath, gps_start=None, source_time_separation=1e6,debug=False)
                                                                 )
     # Assuming your DataFrame is called df and it's sorted by time
     shots = shots.sort_values('time').reset_index(drop=True)
+    return shots
+
+def read_shots(shots, gps_start=None, source_time_separation=1e6,debug=False):
+    """
+    Parses a custom-formatted CSV file containing GPS time and location data for each shot.
+
+    Parameters
+    ----------
+    shots : pd.DataFrame
+        A DataFrame containing shot data with a 'time' column.
+    gps_start : datetime.datetime or None
+        The GPS epoch start time. If None, defaults to January 6, 1980.
+    source_time_separation : float
+        The maximum time separation between shots to consider them part of the same group (in seconds).
+    debug : bool
+        If True, prints debug information during processing.
+
+    Returns
+    -------
+    pd.DataFrame
+        A DataFrame with columns: shot, year, month, day, hour, minute, second, latitude, longitude.
+    """
     
-    if isinstance(source_time_separation, (int, float)):
-
-        # Store the selected shots
-        selected_shots = []
-
-        i = 0
-        j = 0
-        while i < len(shots):
-            # Start time for the current group
-            start_time = shots.loc[i, 'time']
-            
-            # Find shots within 45 seconds from this one
-            mask = (shots['time'] - start_time).dt.total_seconds() <= source_time_separation
-            group = shots[mask & (shots.index >= i)]
-            
-            group["time_from_group_lead"] = (group['time'] - group['time'].iloc[0]).dt.total_seconds()
-            # Save this group
-            selected_shots.append(group)
-            
-            # Move to the next unprocessed shot after this group
-            i = group.index[-1] + 1
-            
-            group.reset_index(drop=True, inplace=True)
-            
-            j+= 1
-            group["shot_group"] = j  # Assign shot numbers based on the index
-            print(f"Group {j} with {len(group)} shots")
-            if debug:
-                print(group)
-        
-
-        # Concatenate all selected groups
-        gd_shots = pd.concat(selected_shots).reset_index(drop=True)
-        
     
-    elif isinstance(source_time_separation, dict):
+    if isinstance(source_time_separation, dict):
         # Assuming source_time_separation is a dictionary with keys as shot group names
         selected_shots = []
         i=0
         for group_name, time_sep in source_time_separation.items():
-            group_name = int(group_name)  # Ensure group name is a string
             
             start_time = shots.loc[i, 'time']
             mask = (shots['time'] - start_time).dt.total_seconds() <= time_sep
             group = shots[mask & (shots.index >= i)]
             group["time_from_group_lead"] = (group['time'] - group['time'].iloc[0]).dt.total_seconds()
             group["shot_group"] = group_name  # Assign the group name
-            print(f"Group {group_name} with {len(group)} shots")
+            print(f"Group {group_name} started at {group.iloc[0].time} with {len(group)} shots")
             selected_shots.append(group)
             
             # Move to the next unprocessed shot after this group
@@ -386,9 +369,9 @@ def read_shots(filepath, gps_start=None, source_time_separation=1e6,debug=False)
             bad_shots.sort_values('time', inplace=True)
             bad_shots.reset_index(drop=True, inplace=True)
             bad_shots["time_from_group_lead"] = (bad_shots['time'] - bad_shots['time'].iloc[0]).dt.total_seconds()
-            bad_shots["shot_group"] = group_name + 1
+            bad_shots["shot_group"] = "last_group"  # Assign a default group name for bad shots
             
-            print(f"Group {group_name+1} with {len(bad_shots)} shots")
+            print(f"Group 'last_group' with {len(bad_shots)} shots")
             
             if debug:
                 print(bad_shots)
@@ -396,7 +379,8 @@ def read_shots(filepath, gps_start=None, source_time_separation=1e6,debug=False)
             gd_shots = pd.concat([gd_shots, bad_shots]).reset_index(drop=True)
             # print(gd_shots)
             # exit()
-            
+    else:
+        raise ValueError("source_time_separation must be a dictionary with group names as keys.")
             
     first_cols = ['shot_group', 'shot', 'time', 'time_from_group_lead']
     cols = first_cols +\
@@ -404,42 +388,133 @@ def read_shots(filepath, gps_start=None, source_time_separation=1e6,debug=False)
     gd_shots = gd_shots[cols]
     return gd_shots
 
+def merge_shots(shots_list: List[pd.DataFrame]) -> pd.DataFrame:
+    """
+    Merges multiple DataFrames containing shot data into a single DataFrame.
+    Parameters
+    ----------
+    shots_list : List[pd.DataFrame]
+        List of DataFrames, each containing shot data with a 'time' column.
+    Returns
+    -------
+    pd.DataFrame
+        A single DataFrame containing all shots, sorted by time.
+    """
+    if not shots_list:
+        raise ValueError("The shots_list is empty. Please provide at least one DataFrame.")
+    merged_shots = pd.concat(shots_list, ignore_index=True)
+    merged_shots.sort_values('time', inplace=True)
+    merged_shots.reset_index(drop=True, inplace=True)
+    return merged_shots
+
+def read_shots_from_folder(folder_path: str, gps_start=None, source_time_separation=1e6, 
+                           bad_shots=None,debug=False) -> pd.DataFrame:
+    """
+    Reads all shot files in a specified folder and merges them into a single DataFrame.
+    Parameters
+    ----------
+    folder_path : str
+        Path to the folder containing shot files.
+    gps_start : datetime.datetime or None
+        The GPS epoch start time. If None, defaults to January 6, 1980.
+    source_time_separation : dict
+        The maximum time separation between shots to consider them part of the same group (in seconds).
+    bad_shots : list or None
+        A list of shot groups to exclude from the final DataFrame. If None, all shots are included.
+    debug : bool
+        If True, prints debug information during processing.
+    Returns
+    -------
+    pd.DataFrame
+        A DataFrame containing all shots, sorted by time.
+    """
+    if not os.path.isdir(folder_path):
+        raise ValueError(f"The provided folder path '{folder_path}' is not a valid directory.")
+    shot_files = glob.glob(os.path.join(folder_path, "*.csv"))
+    if not shot_files:
+        raise ValueError(f"No shot files found in the folder '{folder_path}'.")
+    shots_list = []
+    for file in shot_files:
+        try:
+            shots = read_shot_from_file(file, gps_start=gps_start)
+            if not shots.empty:
+                shots_list.append(shots)
+        except Exception as e:
+            print(f"Error reading file {file}: {e}")
+    if not shots_list:
+        raise ValueError("No valid shot files found in the specified folder.")
+    merged_shots = merge_shots(shots_list)
+    
+    if bad_shots is not None:
+        gd_shots = merged_shots[~merged_shots['shot'].isin(bad_shots)]
+    
+    if debug:
+        print(f"Total shots read: {len(merged_shots)}")
+    merged_shots = read_shots(gd_shots, gps_start=gps_start,
+                              source_time_separation=source_time_separation,
+                              debug=debug)
+    return merged_shots
+
 if __name__ == "__main__":
     # Example usage
     solo_folder = "/groups/igonin/ecastillo/FieldCampII_2025/data/test/raw_shots"
     #raw_shots_paths = glob.glob(solo_folder+"/*.csv")
     
-    p_source_path  = os.path.join(solo_folder, "TB_INT00147.csv")
-    s_source_path  = os.path.join(solo_folder, "TB_INT00148.csv")
+    source_path_1  = os.path.join(solo_folder, "TB_INT00147.csv")
+    source_path_2  = os.path.join(solo_folder, "TB_INT00148.csv")
+    
+    
+    
+    source_time_separation = {"P1": 76.45,
+                              "P2":40,
+                              "P3":30,
+                              "P4":42,
+                              "P5":46,
+                              "P6":26,
+                              "P7":22,
+                              "P8":30,
+                              "P9":33,
+                              "P10":33,
+                              "P11":23,
+                              "P12":24,
+                              "P13":26,
+                              "P14":62,
+                              "P15":51,
+                              "S1_N":30,
+                              "S1_S":21,
+                              "S2_N":21,
+                              "S2_S":19,
+                              "S3_N":24,
+                              "S3_S":31,
+                              "S4_N":38,
+                              "S4_S":35,
+                              "S5_N":30,
+                              "S5_S":31,
+                              "S6_N":21,
+                              "S6_S":26,
+                              "S7_N":20,
+                              "S7_S": 21, 
+                              "S8_N": 21,
+                              
+                            #   3:
+                            }
+    
+    shots = read_shots_from_folder(solo_folder, gps_start=None, 
+                           source_time_separation=source_time_separation, 
+                           bad_shots=
+                           debug=True)
+    last_group_name = shots.iloc[-1].shot_group
+    last_group = shots[shots["shot_group"] ==  last_group_name]
+    print(last_group.iloc[0:10])
+    print(len(shots))
+    # shots
+    # shots = merge_shots([source_path_1, source_path_2])
+    # print(shots)
+    exit()
     # print(p_source_path)
     # exit()
     
-    source_time_separation = {1: 76.45,
-                              2:40,
-                              3:30,
-                              4:42,
-                              5:46,
-                              6:26,
-                              7:22,
-                              8:30,
-                              9:33,
-                              10:33,
-                              11:23,
-                              12:24,
-                              13:26,
-                              14:62,
-                              15:51,
-                              16:30,
-                              17:21,
-                              18:21,
-                              19:19,
-                              20:24,
-                              21:31,
-                              22:38,
-                              23:35,
-                              24:30,
-                            #   3:
-                            }
+
     shots = read_shots(p_source_path,source_time_separation=source_time_separation,
                        debug=True)
     max_group = shots["shot_group"].max()
