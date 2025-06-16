@@ -10,6 +10,7 @@ Emmanuel Castillo (TA): emmanuel.castillotaborda@utallas.edu
 | Examples | Notebook  |
 |---|---|
 | ERT - PyGIMLi| [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ecastillot/FieldCampII_2025/blob/main/examples/ert/ert_pygimli.ipynb) |
+| ERT - ANWR1_06122025| [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ecastillot/FieldCampII_2025/blob/main/examples/ert/ANWR1_0612202.ipynb) |
 | ERT - ROC2025| [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ecastillot/FieldCampII_2025/blob/main/examples/ert/ert_ROC2025.ipynb) |
 
 ## Seismic
