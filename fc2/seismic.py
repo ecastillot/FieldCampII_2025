@@ -1,6 +1,6 @@
 import pandas as pd
 import datetime
-
+import matplotlib.pyplot as plt
 import glob
 import os
 import obsplus
@@ -360,9 +360,8 @@ def read_shots(shots, gps_start=None, source_time_separation=1e6,debug=False):
             
         # Concatenate all selected groups
         gd_shots = pd.concat(selected_shots).reset_index(drop=True)
-            
+        # print(gd_shots)
         bad_shots = shots[~shots.index.isin(gd_shots.index)]
-        
         
         
         if not bad_shots.empty:
@@ -404,6 +403,7 @@ def merge_shots(shots_list: List[pd.DataFrame]) -> pd.DataFrame:
         raise ValueError("The shots_list is empty. Please provide at least one DataFrame.")
     merged_shots = pd.concat(shots_list, ignore_index=True)
     merged_shots.sort_values('time', inplace=True)
+    merged_shots["shot"] = range(1,len(merged_shots)+1)  # Assign shot numbers starting from 1
     merged_shots.reset_index(drop=True, inplace=True)
     return merged_shots
 
@@ -447,13 +447,120 @@ def read_shots_from_folder(folder_path: str, gps_start=None, source_time_separat
     
     if bad_shots is not None:
         gd_shots = merged_shots[~merged_shots['shot'].isin(bad_shots)]
-    
+    else:
+        gd_shots = merged_shots
+        
+    gd_shots = gd_shots.reset_index(drop=True)
+        
+    # print(gd_shots)
     if debug:
         print(f"Total shots read: {len(merged_shots)}")
     merged_shots = read_shots(gd_shots, gps_start=gps_start,
                               source_time_separation=source_time_separation,
                               debug=debug)
     return merged_shots
+
+import pandas as pd
+import matplotlib.pyplot as plt
+
+
+def plot_shot_data(df, save_path=None, show=True):
+    """
+    Plot shot timing data with symbols and group transitions.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Must include 'time', 'time_from_group_lead', 'shot_group'.
+    save_path : str or None
+        Path to save the figure if provided.
+    show : bool
+        Whether to display the plot.
+
+    Returns
+    -------
+    fig, ax : matplotlib figure and axis
+    """
+    df = df.copy()
+    df['time'] = pd.to_datetime(df['time'])
+    df = df.sort_values('time').reset_index(drop=True)
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+
+    prev_group = None
+    used_labels = set()
+
+    # Counters for P and S_N groups
+    p_count = 1
+    s_count = 1
+
+    for idx, row in df.iterrows():
+        time = row['time']
+        y = row['time_from_group_lead']
+        group = row['shot_group']
+
+        # If group changed, add a vertical dashed line
+        if group != prev_group:
+            ax.axvline(time, color='gray', linestyle='--', linewidth=1)
+
+            # Determine if label should be added
+            if group.startswith('P'):
+                label_text = str(p_count)
+                p_count += 1
+            elif group.startswith('S') and group.endswith('_N'):
+                label_text = str(s_count)
+                s_count += 1
+            else:
+                label_text = None
+
+            # Add number on top
+            if label_text:
+                ax.text(time, df['time_from_group_lead'].max() + 2,
+                        label_text, ha='center', va='bottom', fontsize=9, fontweight='bold')
+
+            prev_group = group
+
+        # Determine color
+        color = 'black' if group.startswith('P') else 'red'
+
+        # Marker and symbolic label
+        if group.endswith('_N'):
+            marker = '^'
+            label = 'S_N'
+        elif group.endswith('_S'):
+            marker = 'v'
+            label = 'S_S'
+        else:
+            marker = 'o'
+            label = 'P' if group.startswith('P') else 'S'
+
+        # Avoid duplicate legend labels
+        plot_label = label if label not in used_labels else None
+        if plot_label:
+            used_labels.add(label)
+
+        ax.scatter(time, y, color=color, marker=marker, label=plot_label)
+
+    # Set axis labels and title
+    ax.set_xlabel('Time (UTC)')
+    ax.set_ylabel('Time from First Shot (s)')
+    ax.set_title('Shot Timing')
+
+    # Clean legend
+    ax.legend(title='Shot Type', bbox_to_anchor=(1.05, 1), loc='upper left')
+
+    plt.tight_layout()
+
+    # Save plot
+    if save_path:
+        plt.savefig(save_path, dpi=300)
+        print(f"Plot saved to {save_path}")
+
+    if show:
+        plt.show()
+
+    return fig, ax
+
 
 if __name__ == "__main__":
     # Example usage
@@ -465,7 +572,8 @@ if __name__ == "__main__":
     
     
     
-    source_time_separation = {"P1": 76.45,
+    source_time_separation = { #P Wave
+                              "P1": 76.45,
                               "P2":40,
                               "P3":30,
                               "P4":42,
@@ -480,46 +588,64 @@ if __name__ == "__main__":
                               "P13":26,
                               "P14":62,
                               "P15":51,
-                              "S1_N":30,
+                              "P16":30,
+                              #S Wave
+                              "S1_N":21,
                               "S1_S":21,
-                              "S2_N":21,
-                              "S2_S":19,
-                              "S3_N":24,
-                              "S3_S":31,
-                              "S4_N":38,
-                              "S4_S":35,
-                              "S5_N":30,
-                              "S5_S":31,
-                              "S6_N":21,
-                              "S6_S":26,
-                              "S7_N":20,
-                              "S7_S": 21, 
+                              "S2_N":19,
+                              "S2_S":24,
+                              "S3_N":31,
+                              "S3_S":38,
+                              "S4_N":35,
+                              "S4_S":30,
+                              "S5_N":31,
+                              "S5_S":21,
+                              "S6_N":26,
+                              "S6_S":20,
+                              "S7_N": 21, 
+                              "S7_S": 21,
                               "S8_N": 21,
-                              
-                            #   3:
+                              "S8_S": 29,
+                              "S9_N": 21,
+                              "S9_S": 24,
+                              "S10_N": 30,
+                              "S10_S": 35,
+                              "S11_N": 23,
+                              "S11_S": 22,
+                              "S12_N": 22,
+                              "S12_S": 27,
+                              "S13_N": 36,
+                              "S13_S": 24,
+                              "S14_N": 29,
+                              "S14_S": 20,
+                              "S15_N": 22,
+                              "S15_S": 22,
+                              "S16_N": 25,
+                              "S16_S": 20,
                             }
     
-    shots = read_shots_from_folder(solo_folder, gps_start=None, 
+    shots = read_shots_from_folder(solo_folder, 
                            source_time_separation=source_time_separation, 
-                           bad_shots=
+                           bad_shots=[181,182],
                            debug=True)
-    last_group_name = shots.iloc[-1].shot_group
-    last_group = shots[shots["shot_group"] ==  last_group_name]
-    print(last_group.iloc[0:10])
-    print(len(shots))
-    # shots
-    # shots = merge_shots([source_path_1, source_path_2])
+    
+    out_path = "/groups/igonin/ecastillo/FieldCampII_2025/out/shots_plot.png"
+    plot_shot_data(shots, save_path=out_path, show=True)
     # print(shots)
+    # last_group_name = shots.iloc[-1].shot_group
+    # last_group = shots[shots["shot_group"] ==  last_group_name]
+    # print(last_group.iloc[0:10])
+    # print(len(shots))
     exit()
     # print(p_source_path)
     # exit()
     
 
-    shots = read_shots(p_source_path,source_time_separation=source_time_separation,
-                       debug=True)
-    max_group = shots["shot_group"].max()
-    last_group = shots[shots["shot_group"] == max_group]
-    print(last_group.iloc[0:10])
+    # shots = read_shots(p_source_path,source_time_separation=source_time_separation,
+    #                    debug=True)
+    # max_group = shots["shot_group"].max()
+    # last_group = shots[shots["shot_group"] == max_group]
+    # print(last_group.iloc[0:10])
     # print(shots.iloc[10:30])
     # shots = read_shots(s_source_path,source_time_separation=35.4)
     # print(shots.head(30))
