@@ -411,7 +411,8 @@ def merge_shots(shots_list: List[pd.DataFrame]) -> pd.DataFrame:
     merged_shots.reset_index(drop=True, inplace=True)
     return merged_shots
 
-def read_shots_from_folder(folder_path: str, gps_start=None, source_time_separation=None, 
+def read_shots_from_folder(folder_path: str, gps_start=None, 
+                           source_time_separation=None, 
                            bad_shots=None,debug=False) -> pd.DataFrame:
     """
     Reads all shot files in a specified folder and merges them into a single DataFrame.
@@ -442,13 +443,13 @@ def read_shots_from_folder(folder_path: str, gps_start=None, source_time_separat
     if not shot_files:
         raise ValueError(f"No shot files found in the folder '{folder_path}'.")
     shots_list = []
-    for file in shot_files:
+    for _file in shot_files:
         try:
-            shots = read_shot_from_file(file, gps_start=gps_start)
+            shots = read_shot_from_file(_file, gps_start=gps_start)
             if not shots.empty:
                 shots_list.append(shots)
         except Exception as e:
-            print(f"Error reading file {file}: {e}")
+            print(f"Error reading file {_file}: {e}")
     if not shots_list:
         raise ValueError("No valid shot files found in the specified folder.")
     merged_shots = merge_shots(shots_list)
