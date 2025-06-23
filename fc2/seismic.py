@@ -357,11 +357,15 @@ def read_shots(shots, gps_start=None, source_time_separation=1e6,debug=False):
                        
             if debug:
                 print(group)
-            
-        # Concatenate all selected groups
-        gd_shots = pd.concat(selected_shots).reset_index(drop=True)
-        # print(gd_shots)
-        bad_shots = shots[~shots.index.isin(gd_shots.index)]
+                
+        if not selected_shots:
+            gd_shots = pd.DataFrame(columns=shots.columns)
+            bad_shots = shots.copy()
+        else:    
+            # Concatenate all selected groups
+            gd_shots = pd.concat(selected_shots).reset_index(drop=True)
+            # print(gd_shots)
+            bad_shots = shots[~shots.index.isin(gd_shots.index)]
         
         
         if not bad_shots.empty:
@@ -407,7 +411,7 @@ def merge_shots(shots_list: List[pd.DataFrame]) -> pd.DataFrame:
     merged_shots.reset_index(drop=True, inplace=True)
     return merged_shots
 
-def read_shots_from_folder(folder_path: str, gps_start=None, source_time_separation=1e6, 
+def read_shots_from_folder(folder_path: str, gps_start=None, source_time_separation=None, 
                            bad_shots=None,debug=False) -> pd.DataFrame:
     """
     Reads all shot files in a specified folder and merges them into a single DataFrame.
@@ -419,6 +423,7 @@ def read_shots_from_folder(folder_path: str, gps_start=None, source_time_separat
         The GPS epoch start time. If None, defaults to January 6, 1980.
     source_time_separation : dict
         The maximum time separation between shots to consider them part of the same group (in seconds).
+        example: {"P1": 76.45, "S1_N": 21, ...}
     bad_shots : list or None
         A list of shot groups to exclude from the final DataFrame. If None, all shots are included.
     debug : bool
@@ -428,6 +433,9 @@ def read_shots_from_folder(folder_path: str, gps_start=None, source_time_separat
     pd.DataFrame
         A DataFrame containing all shots, sorted by time.
     """
+    if source_time_separation is None:
+        source_time_separation = {}
+    
     if not os.path.isdir(folder_path):
         raise ValueError(f"The provided folder path '{folder_path}' is not a valid directory.")
     shot_files = glob.glob(os.path.join(folder_path, "*.csv"))
@@ -444,7 +452,6 @@ def read_shots_from_folder(folder_path: str, gps_start=None, source_time_separat
     if not shots_list:
         raise ValueError("No valid shot files found in the specified folder.")
     merged_shots = merge_shots(shots_list)
-    
     if bad_shots is not None:
         gd_shots = merged_shots[~merged_shots['shot'].isin(bad_shots)]
     else:
@@ -459,9 +466,6 @@ def read_shots_from_folder(folder_path: str, gps_start=None, source_time_separat
                               source_time_separation=source_time_separation,
                               debug=debug)
     return merged_shots
-
-import pandas as pd
-import matplotlib.pyplot as plt
 
 
 def plot_shot_data(df, save_path=None, show=True):
@@ -625,7 +629,7 @@ if __name__ == "__main__":
                             }
     
     shots = read_shots_from_folder(solo_folder, 
-                           source_time_separation=source_time_separation, 
+                        #    source_time_separation=source_time_separation, 
                            bad_shots=[181,182],
                            debug=True)
     
