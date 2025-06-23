@@ -17,5 +17,4 @@ Emmanuel Castillo (TA): emmanuel.castillotaborda@utallas.edu
 
 | Examples | Notebook  |
 |---|---|
-| Visualization| [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ecastillot/FieldCampII_2025/blob/main/examples/seismic/seismic_visual.ipynb) |
-| Seismic Unix| [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ecastillot/FieldCampII_2025/blob/main/examples/seismic/SU_proc.ipynb) |
+| Visualization| [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ecastillot/FieldCampII_2025/blob/main/examples/seismic/active_seismic.ipynb) |
