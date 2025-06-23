@@ -349,7 +349,7 @@ def read_shots(shots, gps_start=None, source_time_separation=1e6,debug=False):
             group = shots[mask & (shots.index >= i)]
             group["time_from_group_lead"] = (group['time'] - group['time'].iloc[0]).dt.total_seconds()
             group["shot_group"] = group_name  # Assign the group name
-            print(f"Group {group_name} started at {group.iloc[0].time} with {len(group)} shots")
+            print(f"\nGroup {group_name} started at {group.iloc[0].time} with {len(group)} shots")
             selected_shots.append(group)
             
             # Move to the next unprocessed shot after this group
