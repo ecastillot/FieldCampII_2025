@@ -17,4 +17,4 @@ Emmanuel Castillo (TA): emmanuel.castillotaborda@utallas.edu
 
 | Examples | Notebook  |
 |---|---|
-| Visualization| [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ecastillot/FieldCampII_2025/blob/main/examples/seismic/active_seismic.ipynb) |
+| Read Shots| [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ecastillot/FieldCampII_2025/blob/main/examples/seismic/read_shots.ipynb) |
