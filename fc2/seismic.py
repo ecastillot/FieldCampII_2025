@@ -356,7 +356,7 @@ def read_shots(shots, gps_start=None, source_time_separation=1e6,debug=False):
             i = group.index[-1] + 1
                        
             if debug:
-                print(group)
+                print(group[["shot","time","time_from_group_lead","shot_group"]])
                 
         if not selected_shots:
             gd_shots = pd.DataFrame(columns=shots.columns)
