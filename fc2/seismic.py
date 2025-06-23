@@ -374,7 +374,7 @@ def read_shots(shots, gps_start=None, source_time_separation=1e6,debug=False):
             bad_shots["time_from_group_lead"] = (bad_shots['time'] - bad_shots['time'].iloc[0]).dt.total_seconds()
             bad_shots["shot_group"] = "last_group"  # Assign a default group name for bad shots
             
-            print(f"Group 'last_group' with {len(bad_shots)} shots")
+            print(f"\nGroup 'last_group' with {len(bad_shots)} shots")
             
             if debug:
                 print(bad_shots[["shot","time","time_from_group_lead","shot_group"]])
