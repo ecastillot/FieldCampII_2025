@@ -377,7 +377,7 @@ def read_shots(shots, gps_start=None, source_time_separation=1e6,debug=False):
             print(f"Group 'last_group' with {len(bad_shots)} shots")
             
             if debug:
-                print(bad_shots)
+                print(bad_shots[["shot","time","time_from_group_lead","shot_group"]])
             
             gd_shots = pd.concat([gd_shots, bad_shots]).reset_index(drop=True)
             # print(gd_shots)
