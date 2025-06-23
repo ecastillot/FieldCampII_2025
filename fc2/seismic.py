@@ -566,6 +566,121 @@ def plot_shot_data(df, save_path=None, show=True):
 
     return fig, ax
 
+def plot_shot_geometry(shot, receiver=None, save_path=None, show=True):
+    """
+    Plot shot geometry and timing using symbols to distinguish shot types.
+    Vertical dashed lines indicate transitions between shot groups, and 
+    numbered labels are added to specific groups. Optionally plots receivers.
+
+    Parameters
+    ----------
+    shot : pandas.DataFrame
+        DataFrame containing shot data. Must include:
+        - 'x-coodinate (m)': Shot position along the line.
+        - 'time_from_group_lead': Time delay from the group's first shot.
+        - 'shot_group': Group identifier (e.g., 'P1', 'S2_N').
+    receiver : pandas.DataFrame or None, optional
+        DataFrame with receiver coordinates. Must include:
+        - 'x-coordinate (m)': Receiver position along the line.
+        If None, receivers are not plotted.
+    save_path : str or None, optional
+        Path to save the plot image. If None, the plot is not saved.
+    show : bool, optional
+        Whether to display the plot interactively.
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        The created matplotlib figure.
+    ax : matplotlib.axes.Axes
+        The axes of the plot.
+    """
+    fig, ax = plt.subplots(figsize=(12, 6))
+
+    prev_group = None           # To track when the group changes
+    used_labels = set()         # To avoid repeating labels in the legend
+    p_count = 1                 # Counter for P-group labels
+    s_count = 1                 # Counter for S_N-group labels
+
+    # Loop through each shot and plot
+    for idx, row in shot.iterrows():
+        x = row["x-coodinate (m)"]
+        y = row['time_from_group_lead']
+        group = row['shot_group']
+
+        # Add vertical dashed line when a new group starts
+        if group != prev_group:
+            ax.axvline(x, color='gray', linestyle='--', linewidth=1)
+
+            # Add numerical labels to certain group types
+            if group.startswith('P'):
+                label_text = str(p_count)
+                p_count += 1
+            elif group.startswith('S') and group.endswith('_N'):
+                label_text = str(s_count)
+                s_count += 1
+            else:
+                label_text = None
+
+            # Optional: Uncomment to display number at top of line
+            # if label_text:
+            #     ax.text(x, shot['time_from_group_lead'].max() + 2,
+            #             label_text, ha='center', va='bottom',
+            #             fontsize=9, fontweight='bold')
+
+            prev_group = group
+
+        # Define color based on wave type
+        color = 'black' if group.startswith('P') else 'red'
+
+        # Select marker and legend label
+        if group.endswith('_N'):
+            marker = '^'
+            label = 'S_N'
+        elif group.endswith('_S'):
+            marker = 'v'
+            label = 'S_S'
+        else:
+            marker = 'o'
+            label = 'P' if group.startswith('P') else 'S'
+
+        # Add to legend only once
+        plot_label = label if label not in used_labels else None
+        if plot_label:
+            used_labels.add(label)
+
+        # Plot shot point
+        ax.scatter(x, y, color=color, marker=marker, label=plot_label)
+
+    # Plot receivers if provided
+    if receiver is not None:
+        receiver["y"] = 0  # Set y=0 for all receivers
+        ax.scatter(receiver["x-coordinate (m)"], receiver["y"],
+                   color='green', marker='x', linewidth=10, label="Receivers")
+
+    # Label axes and set title
+    ax.set_xlabel('Distance (m)')
+    ax.set_ylabel('Time from First Shot (s)')
+    ax.set_title('Shots')
+
+    # Add legend outside plot
+    ax.legend(title='Shot Type', bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.tight_layout()
+
+    # Save plot if path is given
+    if save_path:
+        plt.savefig(save_path, dpi=300)
+        print(f"Plot saved to {save_path}")
+
+    # Show plot if requested
+    if show:
+        plt.show()
+
+    return fig, ax
+
+
+
+
 
 if __name__ == "__main__":
     # Example usage
