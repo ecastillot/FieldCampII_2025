@@ -339,7 +339,7 @@ def get_shots_data(shots_labeled, source_geometry):
         - 'time'
         - 'time_from_group_lead'
         - 'Shot Location'
-        - 'sx' (x-coordinate in cm, as integer)
+        - 'sx' (x-coordinate in m)
         - 'sy' (set to 0)
         - 'selev' (set to 0)
         - 'x-coodinate (m)'
@@ -349,7 +349,7 @@ def get_shots_data(shots_labeled, source_geometry):
                                               geometry=source_geometry)
 
     # Convert x-coordinate from meters to centimeters and cast to integer
-    shots_geometry["sx"] = (shots_geometry["x-coodinate (m)"] * 100).astype(int)
+    shots_geometry["sx"] = (shots_geometry["x-coodinate (m)"]).astype(int)
 
     # Add default values for sy and selev
     shots_geometry["sy"] = 0
@@ -387,13 +387,13 @@ def get_receiver_data(receiver_geometry):
         A DataFrame   with the following columns:
         - 'Receiver Number'
         - 'Node ID'
-        - 'gx' (x-coordinate in cm, as integer)
+        - 'gx' (x-coordinate in m)
         - 'gy' (set to 0)
         - 'gelev' (set to 0)
         - 'x-coordinate (m)'
     """
     # Convert x-coordinate from meters to centimeters and cast to integer
-    receiver_geometry["gx"] = (receiver_geometry["x-coordinate (m)"] * 100).astype(int)
+    receiver_geometry["gx"] = (receiver_geometry["x-coordinate (m)"]).astype(int)
 
     # Add default values for gy and gelev
     receiver_geometry["gy"] = 0

@@ -61,11 +61,11 @@ def get_receiver_info(trace_id, receiver_geometry):
 for i, shot in shots_groups["P"].iterrows():
     shot_time = UTCDateTime(shot["time"])
     shot_group = shot["shot_group"]
-    shot_number = int(shot["shot"])  # This is the strike number (1–6, etc.)
+    shot_number = int(shot["shot"])  # Strike number (1–6, etc.)
 
     # Time window for trace cutting
     t_start = shot_time - 1
-    t_end = shot_time + 5
+    t_end = shot_time + 2
 
     # Trim trace data
     st_shot = st.copy().trim(starttime=t_start, endtime=t_end)
@@ -78,41 +78,39 @@ for i, shot in shots_groups["P"].iterrows():
     for j, tr in enumerate(st_shot):
         gx, gy, gelev = get_receiver_info(tr.id, receiver_geometry)
         tr.data = tr.data.astype(np.float32)
-        tr.stats.su = {
-            "sx": sx,
-            "sy": sy,
-            "selev": selev,
-            "gx": gx,
-            "gy": gy,
-            "gelev": gelev,
-            "scalel": -100,
-            "scalco": -100,
-            "ep": shot_number,           # Strike number
-            "fldr": int(shot_group[1:]), # Group number (e.g., 1 for P1)
-            "tracf": j + 1,
+        # tr.normalize()  # Normalize trace data
+        tr.stats.distance = (gx - sx)
+        # Set SEG-Y trace header fields
+        tr.stats.segy = {
+            'trace_sequence_number_within_line': j + 1,
+            'trace_sequence_number_within_segy': j + 1,
+            'source_coordinate_x': sx,
+            'source_coordinate_y': sy,
+            'receiver_coordinate_x': gx,
+            'receiver_coordinate_y': gy,
+            'source_elevation': selev,
+            'receiver_elevation': gelev,
+            # You can also add scalers if needed:
+            'coordinate_units': 2,  # 2 means meters (1 means feet)
+            # Optional fields (make sure to check SEG-Y header spec and ObsPy docs):
+            'ensemble_number': int(shot_group[1:]),  # Using fldr analog as ensemble number
+            'trace_number_within_ensemble': j + 1,  # Like tracf
         }
+
         print(f"\tSource: ({sx}, {sy}, {selev}), Receiver: {tr.stats.station} ({gx}, {gy}, {gelev})")
+
+    # Plot as a seismic section with multiple traces
+    fig = st_shot.plot(type='section',
+                       scale=1, show=False)
+
+    # Save plot to PNG
+
     print(f"Writing shot group {shot_group}, strike {shot_number} with {len(st_shot)} traces")
-    
-    su_out_folder = os.path.join(out_folder,"su_output")
-    su_out_path = os.path.join(su_out_folder, f"{shot_group}_strike_{shot_number}.su")
-    os.makedirs(su_out_folder, exist_ok=True)
-    st_shot.write(su_out_path, format="SU")
 
+    segy_out_folder = os.path.join(out_folder, "segy_output")
+    os.makedirs(segy_out_folder, exist_ok=True)
+    segy_out_path = os.path.join(segy_out_folder, f"{shot_group}_strike_{shot_number}.segy")
+    png_out_path = os.path.join(segy_out_folder, f"{shot_group}_strike_{shot_number}.png")
 
-# for tr in st:
-#     gx, gy, gelev = get_receiver_info(tr.id, receiver_geometry)
-#     print(f"Trace ID: {tr.id}, Receiver X: {gx}, Y: {gy}, Elevation: {gelev}")
-#     # tr.stats.su = {
-#     #     "sx": sx,
-#     #     "sy": sy,
-#     #     "selev": selev,
-#     #     "gx": gx,
-#     #     "gy": gy,
-#     #     "gelev": gelev,
-#     #     "scalel": -100,
-#     #     "scalco": -100,
-#     #     "ep": int(shot["shot"]),   # e.g., shot number as ep
-#     #     "fldr": int(shot["shot"]), # optional field record
-#     #     "tracf": 1                 # update if you know trace number
-#     # }
+    st_shot.write(segy_out_path, format="SEGY")
+    fig.savefig(png_out_path, dpi=300)
