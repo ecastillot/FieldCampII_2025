@@ -58,14 +58,20 @@ def get_receiver_info(trace_id, receiver_geometry):
     row = receiver_geometry.loc[node_id]
     return row["gx"], row["gy"], row["gelev"]
 
+left_seconds = 0.05  # seconds before shot time
+right_seconds = 0.5  # seconds after shot time
+
 for i, shot in shots_groups["P"].iterrows():
+    print(f"Processing shot {i + 1}/{len(shots_groups['P'])}: {shot['shot_group']} - {shot['shot']}")
+    # continue
+    
     shot_time = UTCDateTime(shot["time"])
     shot_group = shot["shot_group"]
     shot_number = int(shot["shot"])  # Strike number (1–6, etc.)
 
     # Time window for trace cutting
-    t_start = shot_time - 1
-    t_end = shot_time + 2
+    t_start = shot_time - left_seconds
+    t_end = shot_time + right_seconds
 
     # Trim trace data
     st_shot = st.copy().trim(starttime=t_start, endtime=t_end)

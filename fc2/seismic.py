@@ -9,6 +9,7 @@ from obspy import read_inventory
 from pyproj import Transformer
 import re
 from typing import List
+import numpy as np
 
 def get_station_from_solo(folder_path: str) -> pd.DataFrame:
     """
@@ -279,7 +280,9 @@ def read_shot_from_file(filepath, gps_start=None):
 
         # Convert GPS week and ms to datetime
         total_seconds = (week * 7 * 24 * 3600) + (ms / 1000) + (subms / 1e6)
-        timestamp = gps_start + datetime.timedelta(seconds=total_seconds)
+
+        week_start = gps_start + datetime.timedelta(weeks=week)
+        timestamp = week_start + datetime.timedelta(milliseconds=ms, microseconds=subms)
 
         lat, lat_sign = coord_line.split("Latitude:")[1].strip().split(" ")
         lon, lon_sign = coord_line.split("Longitude:")[1].split("Latitude:")[0].strip().split(" ")
@@ -845,6 +848,339 @@ def separate_shot_groups(shots_geom):
         "S_N": s_N_shots,
         "S_S": s_S_shots
     }
+
+
+def agc(DataO: np.ndarray, time: np.ndarray, agc_type = 'inst',  time_gate = 500e-3):
+    """
+    agc: applies automatic gain control for a given dataset.
+
+     Usage:
+         gained_data = agc(data,time,agc_type, time_gate)
+
+     Parameters
+     -----------
+     data: np.ndarray
+            Input seismic data
+     time: np.ndarray
+            Time array
+     agc_type: string <class 'str'>
+            Type of agc to be applied. Options: 1)'inst': instantanous AGC. 2) 'rms': root-mean-square.
+            For details, please refere to: https://wiki.seg.org/wiki/Gain_applications
+     time_gate: float <class 'float'>
+            Time gate used for agc in sec. Defualt value 500e-3.
+
+     Returns
+     -------
+     gained_data: np.ndarray
+        Data after applying AGC
+
+        AGC is python function written by Musab Al Hasani based on the book of Oz Yilmaz (https://wiki.seg.org/wiki/Gain_applications)
+
+    """
+    data = np.copy(DataO)
+
+    # # calculate nth-percentile
+    # nth_percentile = np.abs(np.percentile(data, 99))
+
+    # clip data to the value of nth-percentile
+    # data = np.clip(data, a_min=-nth_percentile, a_max = nth_percentile)
+
+
+    num_traces = data.shape[1] # number of traces to apply gain on
+    gain_data  = np.zeros(data.shape) # initialise the gained data 2D array
+
+    # check what type of agc to use
+    if agc_type == 'rms':
+        for itrc in range(num_traces):
+            gain_data[:, itrc] = rms_agc(data[:, itrc], time, time_gate)
+
+    elif agc_type =='inst':
+        for itrc in range(num_traces):
+            gain_data[:, itrc] = inst_agc(data[:, itrc], time, time_gate)
+
+    else:
+        print('Wrong agc type!')
+
+    return gain_data
+
+
+
+def rms_agc(trace: np.ndarray, time: np.ndarray,  time_gate=200e-3)-> np.ndarray:
+    """
+
+    rms_agc: apply root-mean-square automatic gain control for a given trace.
+
+     Usage:
+         gained_trace = agc(data,time,agc_type, time_gate)
+
+     Parameters
+     -----------
+     data: np.ndarray
+            Input seismic trace
+     time: np.ndarray
+            Time array
+     time_gate: float <class 'float'>
+            Time gate used for agc in sec. Defualt value 200e-3 here, though there is  not a typecal value to be used.
+
+     Returns
+     -------
+     gained_trace: np.ndarray
+        trace after applying RMS AGC
+
+        RMS_AGC is python function written by Musab Al Hasani based on the book of Oz Yilmaz (https://wiki.seg.org/wiki/Gain_applications)
+
+    """
+
+    # determine time sampling and num of samples
+    dt = time[1]-time[0]
+    N = len(trace)
+
+    # determine number of time gates to use
+    gates_num = int((time[-1]//time_gate)+1)
+
+    # initialise indecies for the coners of the gate
+    time_gate_1st_ind = 0
+    time_gate_2nd_ind = int(time_gate/dt)
+
+
+    # construct lists for begining and ends of tome gates
+    start_gate_inds = [(time_gate_1st_ind + i*time_gate_2nd_ind) for i in range(gates_num)]
+    end_gate_inds = [start_gate_inds[j] + time_gate_2nd_ind  for j in range(gates_num)]
+
+    # set last gate to the end sample
+    end_gate_inds[-1] = N
+
+    # initialise middle gate time and gain function arrays
+    t_rms_values   = np.zeros(gates_num+2)
+    amp_rms_values = np.zeros(gates_num+2)
+
+    # loop over every gate
+    ivalue = 1
+    for istart, iend in zip(start_gate_inds, end_gate_inds):
+        t_rms_values[ivalue]    = 0.5*(istart + iend)
+        amp_rms_values[ivalue] = np.sqrt(np.mean(np.square(trace[istart:iend])))
+        ivalue += 1
+
+    # set side values for interpolation
+    t_rms_values[-1] = N
+    amp_rms_values[0] = amp_rms_values[1]
+    amp_rms_values[-1] = amp_rms_values[-2]
+
+    # linear interpolation for the rms amp function for every sample N
+    rms_func = np.interp(range(N), t_rms_values, amp_rms_values )
+
+    # calculate the gained trace
+    gained_trace = trace*(np.sqrt(np.mean(np.square(trace)))/rms_func)
+
+
+    return gained_trace
+
+
+def inst_agc(trace, time, time_gate = 500e-3 ):
+    """
+
+    rms_agc: apply instantanous automatic gain control for a given trace.
+
+     Usage:
+         gained_trace = agc(data,time,agc_type, time_gate)
+
+     Parameters
+     -----------
+     data: np.ndarray
+            Input seismic trace
+     time: np.ndarray
+            Time array
+     time_gate: float <class 'float'>
+            Time gate used for agc in sec. typecal values between 200-500ms.
+
+     Returns
+     -------
+     gained_trace: np.ndarray
+        trace after applying instansous AGC
+
+        INST_AGC is python function written by Musab Al Hasani based on the book of Oz Yilmaz (https://wiki.seg.org/wiki/Gain_applications)
+
+    """
+    # determine time sampling and num of samples
+    dt = time[1]-time[0]
+    N = len(trace)
+
+    # determine the number of sample of a given gate
+    end_samples = int(time_gate/dt)
+
+    # calculate gates number not including the last end_samples
+    gates_num = N - end_samples
+
+    # initialise gates begining and end indices
+    time_gate_1st_ind = 0
+    time_gate_2nd_ind = int(time_gate/dt)
+
+    # construct lists for indices of gates corners
+    start_gate_inds = [i for i in range(gates_num)]
+    end_gate_inds = [start_gate_inds[j] + time_gate_2nd_ind  for j in range(gates_num)]
+
+    #initialise gain function
+    amp_inst_values = np.zeros(N)
+
+    # loop over ever sample to calculate gain function
+    ivalue = 0
+    for istart, iend in zip(start_gate_inds, end_gate_inds):
+        amp_inst_values[ivalue] = np.mean(np.abs(trace[istart:iend]))
+        ivalue += 1
+    amp_inst_values[-end_samples:] = (amp_inst_values[ivalue-1])
+
+    # calculate gained trace
+    gained_trace = trace*(np.sqrt(np.mean(np.square(trace)))/amp_inst_values)
+
+    return gained_trace
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+import os
+from obspy import UTCDateTime
+
+def get_receiver_info(trace_id, receiver_geometry):
+    """
+    Given a trace id like 'SS.24311.SW.GPZ', extract receiver info.
+    """
+    node_id = int(trace_id.split(".")[1])
+    row = receiver_geometry.loc[node_id]
+    return row["gx"], row["gy"], row["gelev"]
+
+def process_and_export_shots(
+    st, shots_groups, receiver_geometry, out_folder,
+    phase="P",
+    left_seconds=0.001, right_seconds=0.31,
+    apply_filter=False, freqmin=10, freqmax=80,
+    use_agc=False, agc_type="inst", agc_window=0.1,
+    normalization=True,
+    export_segy=True, plot=True,
+    verbose=True
+):
+    
+    all_receivers = []
+    for i, shot in shots_groups[phase].iterrows():
+        shot_time = UTCDateTime(shot["time"])
+        shot_group = shot["shot_group"]
+        shot_number = int(shot["shot"])
+        strike = shot_number % 6   # Assuming strike is based on shot number
+        if strike == 0:
+            strike = 6  # Adjust to match your strike numbering logic
+        
+        if verbose:
+            print(f"\nProcessing shot {i + 1}/{len(shots_groups[phase])}: {shot['shot_group']} - {strike} | Shot time: {shot_time}")
+
+        t_start = shot_time - left_seconds
+        t_end = shot_time + right_seconds
+        st_shot = st.copy().trim(starttime=t_start, endtime=t_end)
+
+        sx = int(shot["sx"])
+        sy = int(shot["sy"])
+        selev = int(shot["selev"])
+
+        npts = st_shot[0].stats.npts
+        dt = st_shot[0].stats.delta
+        time_vec = np.arange(npts) * dt
+
+        offsets = []
+        receivers = []
+        receivers_names = []
+        sources = []
+        traces = []
+
+        for tr in st_shot:
+            gx, gy, gelev = get_receiver_info(tr.id, receiver_geometry)
+            offset = gx - sx
+            offsets.append(offset)
+
+            tr.data = tr.data.astype(np.float32)
+            # data = tr.data
+
+            if apply_filter:
+                tr.filter("bandpass", freqmin=freqmin, freqmax=freqmax, corners=4, zerophase=True)
+                tr.data = tr.data.astype(np.float32)  # Ensure proper dtype
+                data = tr.data
+
+            if use_agc:
+                data = agc(data[:, np.newaxis], time_vec, agc_type=agc_type, time_gate=agc_window)[:, 0]
+            elif normalization:
+                data = tr.data
+                max_val = np.max(np.abs(data))
+                if max_val > 0:
+                    data = data / max_val
+
+            traces.append(data)
+            receivers.append(gx)
+            receivers_names.append(tr.stats.station)
+            sources.append(sx)
+
+            tr.stats.distance = offset
+            tr.stats.segy = {
+                'source_coordinate_x': sx,
+                'receiver_coordinate_x': gx,
+                'source_elevation': selev,
+                'receiver_elevation': gelev,
+                'coordinate_units': 2,
+                'ensemble_number': int(shot_group[1:]),
+                'trace_number_within_ensemble': tr.stats.trace_number if "trace_number" in tr.stats else 1,
+            }
+            # if verbose:
+            #     print(f"\tSource: {sx}, Receiver: {gx}")
+
+        offsets = np.array(offsets)
+        traces = np.array(traces)
+        sources = np.array(sources)
+        sort_idx = np.argsort(offsets)
+        offsets = offsets[sort_idx]
+        traces = traces[sort_idx]
+        receivers = np.array(receivers)[sort_idx]
+        receivers_names = np.array(receivers_names)[sort_idx]
+        
+        
+        receivers_df = pd.DataFrame({
+                        'source_distance (m)': sources,
+                        'receiver_distance (m)': receivers,
+                        'station': receivers_names
+                    })
+        
+        all_receivers.append(receivers_df)
+
+        times = np.arange(npts) * dt - left_seconds
+
+        
+        if plot:
+            plt.figure(figsize=(10, 6))
+            scale = 0.5 * np.max(np.abs(traces))
+            for j, trace in enumerate(traces):
+                # plt.plot(trace / scale + offsets[j], times, color='black', linewidth=0.5)
+                plt.plot(trace  + offsets[j], times, color='black', linewidth=0.5)
+
+            plt.gca().invert_yaxis()
+            plt.xlabel("Offset (m)")
+            plt.ylabel("Time since shot (s)")
+            plt.title(f"Shot {shot_group} - {strike}| {shot_time} UTC\n"+\
+                     f"Source: {sx}")
+            plt.grid(True)
+            plt.tight_layout()
+
+        if verbose:
+            print(f"\tWriting shot group {shot_group}, strike {strike} with {len(st_shot)} traces")
+
+        segy_out_folder = os.path.join(out_folder, "segy_output")
+        os.makedirs(segy_out_folder, exist_ok=True)
+
+        if export_segy:
+            segy_out_path = os.path.join(segy_out_folder, f"{shot_group}_strike_{strike}.segy")
+            st_shot.write(segy_out_path, format="SEGY")
+
+        if plot:
+            png_out_path = os.path.join(segy_out_folder, f"{shot_group}_strike_{strike}.png")
+            plt.savefig(png_out_path, dpi=300)
+            plt.close()
+    all_receivers_df = pd.concat(all_receivers, ignore_index=True)
+    receivers_out_path = os.path.join(out_folder, "receivers.csv")
+    all_receivers_df.to_csv(receivers_out_path, index=False)
 
 
 if __name__ == "__main__":
