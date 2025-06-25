@@ -565,6 +565,49 @@ def read_shots_from_folder(folder_path: str, gps_start=None,
     return merged_shots
 
 
+def read_shots_from_excel(excel_path: str, 
+                           source_time_separation=None, 
+                           bad_shots=None,debug=False) -> pd.DataFrame:
+    """
+    source_time_separation : dict
+        The maximum time separation between shots to consider them part of the same group (in seconds).
+        example: {"P1": 76.45, "S1_N": 21, ...}
+    bad_shots : list or None
+        A list of shot groups to exclude from the final DataFrame. If None, all shots are included.
+    debug : bool
+        If True, prints debug information during processing.
+    Returns
+    -------
+    pd.DataFrame
+        A DataFrame containing all shots, sorted by time.
+    """
+    if source_time_separation is None:
+        source_time_separation = {}
+    
+    merged_shots = pd.read_excel(excel_path)
+    merged_shots['time'] = pd.to_datetime(
+                                    merged_shots[['Year', 'Month', 'Day',
+                                           'Hour', 'Minute']].assign(Second=merged_shots['Second']),
+                                                                format='%Y-%m-%d %H:%M:%S.%f'
+                                                                )
+    merged_shots.sort_values('time', inplace=True)
+    merged_shots["shot"] = range(1,len(merged_shots)+1)  # Assign shot numbers starting from 1
+    merged_shots.reset_index(drop=True, inplace=True)
+    
+    if bad_shots is not None:
+        gd_shots = merged_shots[~merged_shots['shot'].isin(bad_shots)]
+    else:
+        gd_shots = merged_shots
+        
+    gd_shots = gd_shots.reset_index(drop=True)
+        
+    # print(gd_shots)
+    if debug:
+        print(f"Total shots read: {len(merged_shots)}")
+    merged_shots = read_shots(gd_shots, source_time_separation=source_time_separation,
+                              debug=debug)
+    return merged_shots
+
 def plot_shot_data(df, save_path=None, show=True):
     """
     Plot shot timing data with symbols and group transitions.
@@ -1180,10 +1223,15 @@ def process_and_export_shots(
             plt.close()
     all_receivers_df = pd.concat(all_receivers, ignore_index=True)
     receivers_out_path = os.path.join(out_folder, "receivers.csv")
-    all_receivers_df.to_csv(receivers_out_path, index=False)
+    all_receivers_df.to_csv(receivers_out_path, index=False, date_format="%Y-%m-%d %H:%M:%S.%f")
 
 
 if __name__ == "__main__":
+    
+    # x= read_shots_from_excel("/groups/igonin/ecastillo/FieldCampII_2025/data/seismic/June_14/Nadine/ShotTimes_PackeryFlats.xlsx")
+    # print(x)
+    # exit()
+    
     # Example usage
     solo_folder = "/groups/igonin/ecastillo/FieldCampII_2025/data/test/raw_shots"
     #raw_shots_paths = glob.glob(solo_folder+"/*.csv")
@@ -1194,63 +1242,72 @@ if __name__ == "__main__":
     
     
     source_time_separation = { #P Wave
-                              "P1": 76.45,
-                              "P2":40,
-                              "P3":30,
-                              "P4":42,
-                              "P5":46,
-                              "P6":26,
-                              "P7":22,
-                              "P8":30,
-                              "P9":33,
-                              "P10":33,
-                              "P11":23,
-                              "P12":24,
-                              "P13":26,
-                              "P14":62,
-                              "P15":51,
-                              "P16":30,
+                              "P1": 80,
+                              "P2":41,
+                              "P3":31,
+                              "P4":43,
+                              "P5":47,
+                              "P6":27,
+                              "P7":23,
+                              "P8":31,
+                              "P9":34,
+                              "P10":34,
+                              "P11":24,
+                              "P12":25,
+                              "P13":27,
+                              "P14":63,
+                              "P15":52,
+                              "P16":31,
                               #S Wave
-                              "S1_N":21,
-                              "S1_S":21,
-                              "S2_N":19,
-                              "S2_S":24,
-                              "S3_N":31,
-                              "S3_S":38,
-                              "S4_N":35,
-                              "S4_S":30,
-                              "S5_N":31,
-                              "S5_S":21,
-                              "S6_N":26,
-                              "S6_S":20,
-                              "S7_N": 21, 
-                              "S7_S": 21,
-                              "S8_N": 21,
-                              "S8_S": 29,
-                              "S9_N": 21,
-                              "S9_S": 24,
-                              "S10_N": 30,
-                              "S10_S": 35,
-                              "S11_N": 23,
-                              "S11_S": 22,
-                              "S12_N": 22,
-                              "S12_S": 27,
-                              "S13_N": 36,
-                              "S13_S": 24,
-                              "S14_N": 29,
-                              "S14_S": 20,
-                              "S15_N": 22,
-                              "S15_S": 22,
-                              "S16_N": 25,
-                              "S16_S": 20,
+                              "S1_N":22,
+                              "S1_S":22,
+                              "S2_N":20,
+                              "S2_S":25,
+                              "S3_N":32,
+                              "S3_S":39,
+                              "S4_N":36,
+                              "S4_S":31,
+                              "S5_N":32,
+                              "S5_S":22,
+                              "S6_N":27,
+                              "S6_S":21,
+                              "S7_N": 22,
+                              "S7_S": 22,
+                              "S8_N": 22,
+                              "S8_S": 30,
+                              "S9_N": 22,
+                              "S9_S": 25,
+                              "S10_N": 31,
+                              "S10_S": 36,
+                              "S11_N": 24,
+                              "S11_S": 23,
+                              "S12_N": 23,
+                              "S12_S": 28,
+                              "S13_N": 37,
+                              "S13_S": 25,
+                              "S14_N": 30,
+                              "S14_S": 21,
+                              "S15_N": 23,
+                              "S15_S": 23,
+                              "S16_N": 26,
+                              "S16_S": 21,
                             }
+    bad_shots=[181,182]
     
-    shots = read_shots_from_folder(solo_folder, 
-                        #    source_time_separation=source_time_separation, 
-                           bad_shots=[181,182],
-                           debug=True)
+    source_path = "/groups/igonin/ecastillo/FieldCampII_2025/data/seismic/June_14/Nadine/ShotTimes_PackeryFlats.xlsx"
+    output_path = "/groups/igonin/ecastillo/FieldCampII_2025/data/seismic/June_14/shots_labeled.csv"
+    shots = read_shots_from_excel(source_path,
+                                  source_time_separation=source_time_separation,
+                                  bad_shots=bad_shots,
+                                  debug=True)
+    shots.to_csv(output_path, index=False, 
+                 date_format="%Y-%m-%d %H:%M:%S.%f")
+    # shots = read_shots_from_folder(solo_folder, 
+    #                     #    source_time_separation=source_time_separation, 
+    #                        bad_shots=[181,182],
+    #                        debug=True)
     
-    out_path = "/groups/igonin/ecastillo/FieldCampII_2025/out/shots_plot.png"
+    out_path = "/groups/igonin/ecastillo/FieldCampII_2025/data/seismic/June_14/shots_plot.png"
     plot_shot_data(shots, save_path=out_path, show=True)
     # print(shots)
     # last_group_name = shots.iloc[-1].shot_group

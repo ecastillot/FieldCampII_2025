@@ -19,9 +19,27 @@ station_order = [str(station) for station in station_order]
 
 smart_solo_folder = "/groups/igonin/ecastillo/FieldCampII_2025/data_bck/smart_solo_data"
 
-shot_time = UTCDateTime("2025-06-14 14:00:19.280")
+# shot 2
+# shot_time = UTCDateTime("2025-06-14 14:00:49.350118") #emmanuel
+shot_time = UTCDateTime("2025-06-14 14:00:49.285") #nadine
+
+# #shot 3 
+# shot_time = UTCDateTime("2025-06-14 14:01:02.534066") #emmanuel
+# shot_time = UTCDateTime("2025-06-14 14:01:01.982") #nadine
+
+# #shot 4
+# shot_time = UTCDateTime("2025-06-14 14:01:17.335801") #emmanuel
+# shot_time = UTCDateTime("2025-06-14 14:01:16.579") #nadine
+
+#shot 5 
+shot_time = UTCDateTime("2025-06-14 14:01:25.298") #nadine
+shot_time = UTCDateTime("2025-06-14 14:01:25.423376") #emmanuel
+ 
+
+
+
 l_padding = 0.05  # seconds before and after the shot time
-r_padding = 1  # seconds before and after the shot time
+r_padding = 0.6  # seconds before and after the shot time
 starttime = shot_time-l_padding
 endtime = shot_time + r_padding # 10 seconds after the start time
 st = read_waveforms(folder_path=smart_solo_folder,
