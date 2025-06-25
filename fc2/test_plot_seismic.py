@@ -9,9 +9,9 @@ from seismic import (
            get_receiver_data,get_shots_data,
            process_and_export_shots)
 
-receiver_geometry_path = "/groups/igonin/ecastillo/FieldCampII_2025/data/seismic/June_14/receiver_geometry.csv"
-shots_labeled_path = "/groups/igonin/ecastillo/FieldCampII_2025/data/seismic/June_14/shots_labeled.csv"
-source_geometry_path = "/groups/igonin/ecastillo/FieldCampII_2025/data/seismic/June_14/source_geometry.csv"
+receiver_geometry_path = "/groups/igonin/ecastillo/FieldCampII_2025/data/seismic/PF/receiver_geometry.csv"
+shots_labeled_path = "/groups/igonin/ecastillo/FieldCampII_2025/data/seismic/PF/shots_labeled.csv"
+source_geometry_path = "/groups/igonin/ecastillo/FieldCampII_2025/data/seismic/PF/source_geometry.csv"
 
 out_folder = "/groups/igonin/ecastillo/FieldCampII_2025/out"
 
