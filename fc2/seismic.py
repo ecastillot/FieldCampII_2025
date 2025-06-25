@@ -1301,7 +1301,7 @@ def process_and_export_shots(
         if verbose:
             print(f"\tWriting shot group {shot_group}, strike {strike} with {len(st_shot)} traces")
 
-        segy_out_folder = os.path.join(out_folder, "segy_output")
+        segy_out_folder = os.path.join(out_folder, "processing")
         os.makedirs(segy_out_folder, exist_ok=True)
 
         if export_segy:
