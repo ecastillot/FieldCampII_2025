@@ -199,7 +199,7 @@ def read_waveforms(
     """
     pattern = os.path.join(
         folder_path,
-        f"{station}.0001.*.*.*.*.*.*.*.{component}.miniseed"
+        f"{station}.*.*.*.*.*.*.*.*.{component}.miniseed"
     )
 
     matched_files = glob.glob(pattern)
