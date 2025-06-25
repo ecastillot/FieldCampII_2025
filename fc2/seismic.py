@@ -1232,7 +1232,7 @@ def process_and_export_shots(
                 'source_elevation': selev,
                 'receiver_elevation': gelev,
                 'coordinate_units': 2,
-                'ensemble_number': int(shot_group[1:]),
+                # 'ensemble_number': int(shot_group[1:]),
                 'trace_number_within_ensemble': tr.stats.trace_number if "trace_number" in tr.stats else 1,
             }
             # if verbose:
