@@ -1094,19 +1094,79 @@ def get_receiver_info(trace_id, receiver_geometry):
 def process_and_export_shots(
     st, shots_groups, receiver_geometry, out_folder,
     phase="P",
+    delay_dict=None,
     left_seconds=0.001, right_seconds=0.31,
     apply_filter=False, freqmin=10, freqmax=80,
-    use_agc=False, agc_type="inst", agc_window=0.1,
     normalization=True,
-    export_segy=True, plot=True,
+    plot=True,
+    only_specific_shots = [],
+    export_segy=True, 
+    export_csv=True,
     verbose=True
 ):
     
+    """
+    Processes seismic shots by trimming traces, applying filters/normalization,
+    plotting results, and exporting to SEGY and CSV formats.
+
+    Parameters
+    ----------
+    st : obspy.Stream
+        Stream containing seismic data.
+    shots_groups : dict
+        Dictionary with shot information grouped by phase.
+    receiver_geometry : dict
+        Dataframe containing receiver geometry information.
+        with the following columns:
+        - 'Receiver Number','Node ID','gx' (x-coordinate in m), 'x-coordinate (m)'
+    out_folder : str
+        Directory where outputs will be saved.
+    phase : str, optional
+        Seismic phase to process (default is 'P').
+        other options could be 'S_N', 'S_S'.
+    delay_dict : dict, optional
+        Dictionary of delays (in seconds) for each shot number.
+    left_seconds : float, optional
+        Seconds before shot time to start trimming.
+    right_seconds : float, optional
+        Seconds after shot time to end trimming.
+    apply_filter : bool, optional
+        Whether to apply bandpass filter.
+    freqmin : float, optional
+        Minimum frequency for bandpass filter.
+    freqmax : float, optional
+        Maximum frequency for bandpass filter.
+    normalization : bool, optional
+        Whether to normalize traces by their max amplitude.
+    only_specific_shots : list, optional
+        If given, work only these shots.
+    plot : bool, optional
+        Whether to generate offset-time plots.
+    export_segy : bool, optional
+        Whether to export trimmed shots to SEGY format.
+    export_csv : bool, optional
+        Whether to export receiver metadata to CSV.
+    verbose : bool, optional
+        Whether to print detailed logs.
+    """
+    
+    if delay_dict is None:
+        delay_dict = {}
+    
+    phase_shots = shots_groups[phase]
+    phase_shots["shot"] = phase_shots["shot"].astype(str)
+    
+    if only_specific_shots:
+        only_specific_shots = [str(s) for s in only_specific_shots]
+        phase_shots = phase_shots[phase_shots["shot"].isin(only_specific_shots)]
+    
+    
     all_receivers = []
-    for i, shot in shots_groups[phase].iterrows():
+    for i, shot in phase_shots.iterrows():
         shot_time = UTCDateTime(shot["time"])
         shot_group = shot["shot_group"]
         shot_number = int(shot["shot"])
+        
         strike = shot_number % 6   # Assuming strike is based on shot number
         if strike == 0:
             strike = 6  # Adjust to match your strike numbering logic
@@ -1114,8 +1174,16 @@ def process_and_export_shots(
         if verbose:
             print(f"\nProcessing shot {i + 1}/{len(shots_groups[phase])}: {shot['shot_group']} - {strike} | Shot time: {shot_time}")
 
-        t_start = shot_time - left_seconds
-        t_end = shot_time + right_seconds
+
+        if str(shot["shot"]) in list(delay_dict.keys()):
+            delay = delay_dict[str(shot["shot"])]
+        else:
+            delay = 0.0  # Default delay if not found in the dictionary
+        if verbose:
+            print(f"\tApplying delay: {delay} seconds")
+
+        t_start = shot_time + delay - left_seconds 
+        t_end = shot_time + delay + right_seconds
         st_shot = st.copy().trim(starttime=t_start, endtime=t_end)
 
         sx = int(shot["sx"])
@@ -1145,9 +1213,8 @@ def process_and_export_shots(
                 tr.data = tr.data.astype(np.float32)  # Ensure proper dtype
                 data = tr.data
 
-            if use_agc:
-                data = agc(data[:, np.newaxis], time_vec, agc_type=agc_type, time_gate=agc_window)[:, 0]
-            elif normalization:
+            
+            if normalization:
                 data = tr.data
                 max_val = np.max(np.abs(data))
                 if max_val > 0:
@@ -1189,21 +1256,45 @@ def process_and_export_shots(
         
         all_receivers.append(receivers_df)
 
+
+
         times = np.arange(npts) * dt - left_seconds
 
         
         if plot:
             plt.figure(figsize=(10, 6))
+            # Good scale factor: small fraction of max amplitude
             scale = 0.5 * np.max(np.abs(traces))
+            # scale=1
             for j, trace in enumerate(traces):
                 # plt.plot(trace / scale + offsets[j], times, color='black', linewidth=0.5)
-                plt.plot(trace  + offsets[j], times, color='black', linewidth=0.5)
+                trace_scaled = trace / scale
+                # plt.plot(trace_scaled  + offsets[j], times, color='black', linewidth=0.5)
+                plt.plot(trace_scaled + offsets[j], times, color='black', 
+                         linewidth=0.5)
+                
+            plt.axvline(x=0, color='red', linestyle='--', linewidth=1.3, label='Source')
 
             plt.gca().invert_yaxis()
             plt.xlabel("Offset (m)")
             plt.ylabel("Time since shot (s)")
-            plt.title(f"Shot {shot_group} - {strike}| {shot_time} UTC\n"+\
-                     f"Source: {sx}")
+            plt.title(f"Shot {shot_number} | Group {shot_group} | Strike {strike} | {shot_time} UTC | Delay {delay} s\n"+\
+                     f"Source: {sx} m")
+            
+            # Major and minor grid setup
+            ax = plt.gca()
+            # Set major ticks every 2 x units
+            ax.grid(True, which='major', linestyle='--', linewidth=0.5, color='gray')
+            ax.grid(True, which='minor', linestyle=':', linewidth=0.8,color='lightgray')
+
+            # Enable minor ticks
+            ax.minorticks_on()
+
+            # Set minor ticks every 2 meters on x-axis
+            xmin, xmax = ax.get_xlim()
+            minor_xticks = np.arange(np.floor(xmin), np.ceil(xmax), 2)
+            ax.set_xticks(minor_xticks, minor=True)
+            
             plt.grid(True)
             plt.tight_layout()
 
@@ -1221,9 +1312,16 @@ def process_and_export_shots(
             png_out_path = os.path.join(segy_out_folder, f"{shot_group}_strike_{strike}.png")
             plt.savefig(png_out_path, dpi=300)
             plt.close()
-    all_receivers_df = pd.concat(all_receivers, ignore_index=True)
-    receivers_out_path = os.path.join(out_folder, "receivers.csv")
-    all_receivers_df.to_csv(receivers_out_path, index=False, date_format="%Y-%m-%d %H:%M:%S.%f")
+            
+    if len(all_receivers) == 1:
+        all_receivers_df = all_receivers[0]
+    else:
+        # Concatenate all receivers DataFrames into a single DataFrame
+        all_receivers_df = pd.concat(all_receivers, ignore_index=True)
+    
+    if export_csv:
+        receivers_out_path = os.path.join(out_folder, "receivers.csv")
+        all_receivers_df.to_csv(receivers_out_path, index=False, date_format="%Y-%m-%d %H:%M:%S.%f")
 
 
 if __name__ == "__main__":
