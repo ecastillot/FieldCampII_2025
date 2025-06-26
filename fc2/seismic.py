@@ -396,7 +396,7 @@ def get_receiver_data(receiver_geometry):
         - 'x-coordinate (m)'
     """
     # Convert x-coordinate from meters to centimeters and cast to integer
-    receiver_geometry["gx"] = (receiver_geometry["x-coordinate (m)"]).astype(int)
+    receiver_geometry["gx"] = (receiver_geometry["x-coordinate (m)"]).astype(float)
 
     # Add default values for gy and gelev
     receiver_geometry["gy"] = 0
@@ -1203,6 +1203,8 @@ def process_and_export_shots(
         for tr in st_shot:
             gx, gy, gelev = get_receiver_info(tr.id, receiver_geometry)
             offset = gx - sx
+            # print(gx,sx,offset)
+            # exit()
             offsets.append(offset)
 
             tr.data = tr.data.astype(np.float32)
@@ -1247,7 +1249,8 @@ def process_and_export_shots(
         receivers = np.array(receivers)[sort_idx]
         receivers_names = np.array(receivers_names)[sort_idx]
         
-        
+        # print(offsets)
+        # exit()
         receivers_df = pd.DataFrame({
                         'source_distance (m)': sources,
                         'receiver_distance (m)': receivers,

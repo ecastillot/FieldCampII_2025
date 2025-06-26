@@ -27,16 +27,16 @@ shots_geometry = get_shots_data(shots_labeled, source_geometry)
 shots_groups = separate_shot_groups(shots_geom=shots_geometry)
 
 
-for group_name, shots in shots_groups.items():
-    print(f"Group: {group_name}, Number of groups: {len(shots.groupby('shot_group'))}, Shots per group: {shots.groupby('shot_group').size().to_dict()}")
-    plot_shot_data(shots,
-                   save_path=os.path.join(out_folder, f"shots_{group_name}_data.png"),)
-    plot_shot_geometry(shots, receiver=receiver_geometry,
-                       save_path=os.path.join(out_folder, f"shots_{group_name}_geometry.png"))
+# for group_name, shots in shots_groups.items():
+#     print(f"Group: {group_name}, Number of groups: {len(shots.groupby('shot_group'))}, Shots per group: {shots.groupby('shot_group').size().to_dict()}")
+#     plot_shot_data(shots,
+#                    save_path=os.path.join(out_folder, f"shots_{group_name}_data.png"),)
+#     plot_shot_geometry(shots, receiver=receiver_geometry,
+#                        save_path=os.path.join(out_folder, f"shots_{group_name}_geometry.png"))
 
 ## Downloading data
-!wget -O smart_solo_data.zip "https://www.dropbox.com/scl/fo/tkeerdr54zz6r3psn61y1/ABIXTjSj-xDSgWm9sH-jjks?rlkey=jyw3s1cfk8mm3tcu5vuy8u8rk&e=1&dl=1"
-!unzip  smart_solo_data.zip -d  smart_solo_data
+#!wget -O smart_solo_data.zip "https://www.dropbox.com/scl/fo/tkeerdr54zz6r3psn61y1/ABIXTjSj-xDSgWm9sH-jjks?rlkey=jyw3s1cfk8mm3tcu5vuy8u8rk&e=1&dl=1"
+#!unzip  smart_solo_data.zip -d  smart_solo_data
 
 smart_solo_folder = "/groups/igonin/ecastillo/FieldCampII_2025/data_bck/smart_solo_data"
 starttime = UTCDateTime(shots_groups["P"]["time"].min()) - 5  # buffer in seconds
