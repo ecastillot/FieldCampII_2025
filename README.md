@@ -19,3 +19,9 @@ Emmanuel Castillo (TA): emmanuel.castillotaborda@utallas.edu
 |---|---|
 | Read Shots| [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ecastillot/FieldCampII_2025/blob/main/examples/seismic/read_shots.ipynb) |
 | Seismic Processing| [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ecastillot/FieldCampII_2025/blob/main/examples/seismic/seismic_processing_colab.ipynb) |
+
+## Others
+
+| Examples | Notebook  |
+|---|---|
+| Samrtsolo Sot Time Analysis| [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ecastillot/FieldCampII_2025/blob/main/examples/seismic/SmartSolo_ShotTimeAnalysis.ipynb) |
