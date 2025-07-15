@@ -89,7 +89,7 @@ process_and_export_shots(
     
     normalization=True,
     plot=True,
-    only_specific_shots=[1],
+    only_specific_shots=[],
     export_segy=False,
     verbose=True
 )

@@ -1099,6 +1099,7 @@ def process_and_export_shots(
     apply_filter=False, freqmin=10, freqmax=80,
     normalization=True,
     plot=True,
+    bd2stack=None,
     only_specific_shots = [],
     export_segy=True, 
     export_csv=True,
@@ -1142,6 +1143,8 @@ def process_and_export_shots(
         If given, work only these shots.
     plot : bool, optional
         Whether to generate offset-time plots.
+    bd2stack: dict, optional
+        Don't consider these shots in your stack processing.
     export_segy : bool, optional
         Whether to export trimmed shots to SEGY format.
     export_csv : bool, optional
@@ -1152,6 +1155,9 @@ def process_and_export_shots(
     
     if delay_dict is None:
         delay_dict = {}
+        
+    if bd2stack is None:
+        bd2stack = {}
     
     phase_shots = shots_groups[phase]
     phase_shots["shot"] = phase_shots["shot"].astype(str)
@@ -1160,8 +1166,8 @@ def process_and_export_shots(
         only_specific_shots = [str(s) for s in only_specific_shots]
         phase_shots = phase_shots[phase_shots["shot"].isin(only_specific_shots)]
     
-    
     all_receivers = []
+    traces = phase_shots.groupby("")
     for i, shot in phase_shots.iterrows():
         shot_time = UTCDateTime(shot["time"])
         shot_group = shot["shot_group"]
@@ -1237,8 +1243,9 @@ def process_and_export_shots(
                 # 'ensemble_number': int(shot_group[1:]),
                 'trace_number_within_ensemble': tr.stats.trace_number if "trace_number" in tr.stats else 1,
             }
-            # if verbose:
-            #     print(f"\tSource: {sx}, Receiver: {gx}")
+            if verbose:
+                print(f"\tshot number {shot_number}")
+                # print(f"\tSource: {sx}, Receiver: {gx}")
 
         offsets = np.array(offsets)
         traces = np.array(traces)
@@ -1306,7 +1313,7 @@ def process_and_export_shots(
 
         segy_out_folder = os.path.join(out_folder, "processing")
         os.makedirs(segy_out_folder, exist_ok=True)
-
+        
         if export_segy:
             segy_out_path = os.path.join(segy_out_folder, f"{shot_group}_strike_{strike}.segy")
             st_shot.write(segy_out_path, format="SEGY")
@@ -1315,6 +1322,30 @@ def process_and_export_shots(
             png_out_path = os.path.join(segy_out_folder, f"{shot_group}_strike_{strike}.png")
             plt.savefig(png_out_path, dpi=300)
             plt.close()
+        
+        
+        ## stacking
+        if str(shot["shot"]) in list(bd2stack.keys()):
+            note = bd2stack[str(shot["shot"])]
+            
+            if note == "bad":
+                continue
+            
+            fig,ax2 = plt.subplot()
+            for j, trace in enumerate(traces):
+                # plt.plot(trace / scale + offsets[j], times, color='black', linewidth=0.5)
+                trace_stack = np.sum(trace)
+                
+                ax2.plot(trace_stack + offsets[j],
+                        times, color='black', 
+                         linewidth=0.5)
+                
+                
+            png_out_path = os.path.join(segy_out_folder, f"{shot_group}_stacked.png")
+            fig.savefig(png_out_path, dpi=300)
+        
+        
+
             
     if len(all_receivers) == 1:
         all_receivers_df = all_receivers[0]
