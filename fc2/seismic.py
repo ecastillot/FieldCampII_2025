@@ -1198,7 +1198,6 @@ def process_and_export_shots(
         phase_shots = phase_shots[phase_shots["shot"].isin(only_specific_shots)]
     
     all_receivers = []
-    traces = phase_shots.groupby("")
     for i, shot in phase_shots.iterrows():
         shot_time = UTCDateTime(shot["time"])
         shot_group = shot["shot_group"]
