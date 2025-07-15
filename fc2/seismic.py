@@ -11,6 +11,32 @@ import re
 from typing import List
 import numpy as np
 
+def round_to_16_chars(value):
+    s = str(int(abs(value)))
+    int_len = len(s)
+    sign_len = 1 if value < 0 else 0
+    decimals_allowed = 16 - int_len - 1 - sign_len
+
+    if decimals_allowed < 0:
+        # Integer part too long — force round to integer
+        return round(value)
+    elif decimals_allowed == 0:
+        # No decimals allowed — round to integer properly
+        return round(value)
+    else:
+        format_str = f"{{:.{decimals_allowed}f}}"
+        rounded_str = format_str.format(value)
+        # Check for carry-over that increases integer length
+        rounded_int_len = len(str(int(abs(float(rounded_str)))))
+        new_decimals_allowed = 16 - rounded_int_len - 1 - sign_len
+        if new_decimals_allowed < decimals_allowed:
+            decimals_allowed = new_decimals_allowed
+            if decimals_allowed <= 0:
+                return round(value)
+            format_str = f"{{:.{decimals_allowed}f}}"
+            rounded_str = format_str.format(value)
+        return float(rounded_str)
+
 def get_station_from_solo(folder_path: str) -> pd.DataFrame:
     """
     Reads all DigiSolo log files in a specified folder and extracts station information.
@@ -279,10 +305,15 @@ def read_shot_from_file(filepath, gps_start=None):
         subms = int(parts[2].split('=')[1])
 
         # Convert GPS week and ms to datetime
-        total_seconds = (week * 7 * 24 * 3600) + (ms / 1000) + (subms / 1e6)
+        # total_seconds = (week * 7 * 24 * 3600) + (ms / 1000) + (subms / 1e6)
 
-        week_start = gps_start + datetime.timedelta(weeks=week)
-        timestamp = week_start + datetime.timedelta(milliseconds=ms, microseconds=subms)
+        # week_start = gps_start + datetime.timedelta(weeks=week)
+        # timestamp = week_start + datetime.timedelta(milliseconds=ms, microseconds=subms)
+
+        solo = week * 604800000000 + (ms * 1000) + (subms / 1000)
+        solo = round_to_16_chars(solo/ 1e6)  # Convert to seconds rounding to 16 characters
+        timestamp = gps_start + datetime.timedelta(seconds=solo)
+
 
         lat, lat_sign = coord_line.split("Latitude:")[1].strip().split(" ")
         lon, lon_sign = coord_line.split("Longitude:")[1].split("Latitude:")[0].strip().split(" ")
@@ -1359,6 +1390,14 @@ def process_and_export_shots(
 
 
 if __name__ == "__main__":
+
+    ## test solo shot file
+    # path = "/groups/igonin/ecastillo/FieldCampII_2025/data_bck/ROC_S_050725/SourceTesting/TB_INT00136.csv"
+    path = "/groups/igonin/ecastillo/FieldCampII_2025/data_bck/ROC_S_050725/SourceTesting/TB_INT00142.csv"
+    shots = read_shot_from_file(path)
+    print(shots)
+
+    exit()
     
     # x= read_shots_from_excel("/groups/igonin/ecastillo/FieldCampII_2025/data/seismic/June_14/Nadine/ShotTimes_PackeryFlats.xlsx")
     # print(x)
